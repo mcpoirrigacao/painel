@@ -560,13 +560,18 @@ function getRedirectUri(){ const l=window.location; return l.href.split('?')[0].
 const MSAL_CONFIG={ auth:{ clientId:AZURE_CLIENT_ID, authority:'https://login.microsoftonline.com/'+AZURE_TENANT_ID, redirectUri:getRedirectUri(), postLogoutRedirectUri:getRedirectUri() },
                     cache:{ cacheLocation:'localStorage', storeAuthStateInCookie:true } };
 let msalInstance=null, msAccount=null, msalReady=false;
-let escopoAtual = lsGet(LS_ESCOPO,'leitura')==='reserva' ? SCOPES_RESERVA : SCOPES_LEITURA;
+/* Padrão: as mesmas permissões que os outros apps já usam (a empresa exige aprovação de
+   administrador para permissões novas). O login só leitura é ativado em ⚙ Fontes depois
+   que o administrador liberar Sites.Read.All para o app no Azure. */
+let escopoAtual = lsGet(LS_ESCOPO,'reserva')==='leitura' ? SCOPES_LEITURA : SCOPES_RESERVA;
 function usandoReserva(){ return escopoAtual===SCOPES_RESERVA; }
 function loadMsal(){ return new Promise((res,rej)=>{ if(window.msal){res();return;}
   const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.7.1/lib/msal-browser.min.js';
   s.onload=()=>res(); s.onerror=()=>{ const s2=document.createElement('script'); s2.src='https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js'; s2.onload=()=>res(); s2.onerror=()=>rej(new Error('MSAL')); document.head.appendChild(s2); };
   document.head.appendChild(s); }); }
-function ehErroConsentimento(e){ const t=String((e&&(e.errorCode||''))+' '+(e&&e.errorMessage||'')+' '+(e&&e.message||'')); return /consent|AADSTS65001|AADSTS90094|invalid_grant/i.test(t); }
+function ehErroConsentimento(e){ const t=String((e&&(e.errorCode||''))+' '+(e&&e.errorMessage||'')+' '+(e&&e.message||'')); return /consent|access_denied|AADSTS65001|AADSTS65004|AADSTS90094|AADSTS90008|invalid_grant/i.test(t); }
+/* um popup de login fechado no meio deixa o MSAL travado em "interaction_in_progress" */
+function limparInteracaoTravada(){ [window.sessionStorage, window.localStorage].forEach(st=>{ try{ Object.keys(st).filter(k=>/interaction\.status/i.test(k)).forEach(k=>st.removeItem(k)); }catch(e){} }); }
 async function getGraphToken(){
   if(!msalInstance||!msAccount) return null;
   try{ const r=await msalInstance.acquireTokenSilent({scopes:escopoAtual, account:msAccount}); return r.accessToken; }
@@ -740,9 +745,13 @@ function renderFontes(){
     const f=FONTES[k];
     const st={ok:['ok','✓ lido'],erro:['erro','⚠ erro'],carregando:['carregando','⏳ lendo'],semsenha:['erro','🔑 falta senha'],idle:['carregando','aguardando']}[f.estado];
     return `<div class="linha"><b>${f.nome}</b><span class="st ${st[0]}">${st[1]}</span><span class="det">${escapeHtml(f.onde)}${f.quando?' · última leitura às '+horaBr(f.quando):''}${f.msg?' · '+escapeHtml(f.msg):''}</span></div>`;
-  }).join('') + `<div class="linha"><b>Permissão Microsoft</b><span class="st ${usandoReserva()?'carregando':''}">${usandoReserva()?'reserva':'só leitura'}</span><span class="det">${usandoReserva()
-      ? 'A permissão de leitura (Sites.Read.All) ainda não foi liberada para este app no Azure; o login usa as permissões dos outros apps. O painel continua sem nenhuma função de gravação.'
-      : 'O login pede apenas leitura (Sites.Read.All). Mesmo que alguém altere o código, o token não permite gravar.'}</span></div>`;
+  }).join('') + `<div class="linha"><b>Permissão Microsoft</b><span class="st ${usandoReserva()?'carregando':''}">${usandoReserva()?'mesma dos apps':'só leitura'}</span><span class="det">${usandoReserva()
+      ? 'O login usa as mesmas permissões já aprovadas para os outros apps. O painel continua sem nenhuma função de gravação. Quando o administrador liberar Sites.Read.All no Azure, ative o login só leitura:'
+      : 'O login pede apenas leitura (Sites.Read.All). Mesmo que alguém altere o código, o token não permite gravar.'}</span>
+      <button class="btn ghost small" id="btn-escopo" type="button">${usandoReserva()?'Ativar login só leitura':'Voltar às permissões dos apps'}</button></div>`;
+  const be=document.getElementById('btn-escopo');
+  if(be) be.onclick=()=>{ const ir=usandoReserva(); if(ir&&!confirm('Só funciona se o administrador já liberou Sites.Read.All para o app no Azure. Continuar?')) return;
+    lsSet(LS_ESCOPO, ir?'leitura':'reserva'); escopoAtual=ir?SCOPES_LEITURA:SCOPES_RESERVA; renderFontes(); if(msAccount&&acessoLiberado) carregarTudo(false); };
 }
 
 /* ------------------------------ acesso ------------------------------ */
@@ -781,7 +790,7 @@ async function aposLogin(){
 async function initAuth(){
   try{
     await loadMsal(); const M=window.msal&&window.msal.PublicClientApplication; if(!M) throw new Error('MSAL');
-    msalInstance=new M(MSAL_CONFIG); await msalInstance.initialize(); msalReady=true;
+    limparInteracaoTravada(); msalInstance=new M(MSAL_CONFIG); await msalInstance.initialize(); msalReady=true;
     const accs=msalInstance.getAllAccounts();
     if(accs.length){ msAccount=msalInstance.getActiveAccount()||accs[0]; await aposLogin(); }
     else { updateLoginUI(); applyAccess(); }
@@ -807,11 +816,11 @@ document.getElementById('btn-ms-login').addEventListener('click', async()=>{
     let resp;
     try{ resp=await msalInstance.loginPopup({scopes:escopoAtual}); }
     catch(e){
-      if(!usandoReserva() && ehErroConsentimento(e)){ escopoAtual=SCOPES_RESERVA; lsSet(LS_ESCOPO,'reserva'); resp=await msalInstance.loginPopup({scopes:escopoAtual}); }
+      if(!usandoReserva() && ehErroConsentimento(e)){ escopoAtual=SCOPES_RESERVA; lsSet(LS_ESCOPO,'reserva'); limparInteracaoTravada(); resp=await msalInstance.loginPopup({scopes:escopoAtual}); }
       else throw e;
     }
     msAccount=resp.account; msalInstance.setActiveAccount(msAccount); await aposLogin();
-  }catch(e){ updateLoginUI(); toast('Erro no login: '+(e.errorCode||e.message||'desconhecido')); }
+  }catch(e){ limparInteracaoTravada(); updateLoginUI(); toast('Erro no login: '+(e.errorCode||e.message||'desconhecido')); }
 });
 
 /* --------------------------- abas, filtros, auto --------------------------- */
