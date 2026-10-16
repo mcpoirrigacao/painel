@@ -2,7 +2,7 @@
 
 **Acesso:** https://mcpoirrigacao.github.io/painel/
 
-Reúne, em modo **visualização**, as telas dos apps internos: CRM Comercial, Faturamento,
+Reúne, em modo **visualização**, as telas dos apps internos: CRM Comercial, CRM SAM, Faturamento,
 Assistência Técnica, Obras de Montagem e Orçamentos, mais uma Visão Geral resumida do mês.
 
 ## Como funciona
@@ -10,7 +10,9 @@ Assistência Técnica, Obras de Montagem e Orçamentos, mais uma Visão Geral re
 - O painel lê os mesmos arquivos que os apps usam no SharePoint MCPOIRRIGACAO e a planilha do CRM (Apps Script).
 - Cada área mostra **a própria tela do app** (o index.html publicado de cada repositório), aberta num quadro isolado:
   sem acesso à rede (não consegue gravar nada), sem login do app, com botões de cadastro/edição e a aba Parâmetros ocultos.
+  O cabeçalho de cada app é escondido: as páginas dele viram o **submenu** do painel (e a data de referência, quando existe, fica no submenu).
   Melhorias publicadas nos apps aparecem aqui automaticamente.
+- O CRM SAM lê a pasta "CRM SAM" do SharePoint; a tela dele conversa com um SharePoint simulado que só responde leitura.
 - Orçamentos tem tela própria (o app de orçamentação não tem painel), com filtro de período e busca.
 
 ## Acesso e parâmetros

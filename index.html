@@ -153,14 +153,6 @@ table.dt tr.total-row td{background:var(--areia-escura);font-weight:700;color:va
 body.modo-tv main{max-width:none;}
 @media (max-width:700px){.hdr-ctrls{margin-left:0;width:100%;}}
 
-/* telas originais embutidas */
-.embed-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px;font-size:.74rem;color:var(--texto-suave);}
-.embed-bar .ro{font-weight:700;color:var(--azul-escuro);background:#e4f1e6;border-radius:10px;padding:3px 10px;}
-.embed-bar a{color:var(--azul);}
-.embed-wrap{background:#fff;border:1px solid var(--borda);border-radius:8px;overflow:hidden;}
-.embed-wrap iframe{display:block;width:100%;height:calc(100vh - 205px);min-height:560px;border:0;background:var(--areia);}
-body.modo-tv .embed-wrap iframe{height:calc(100vh - 150px);}
-main.largo{max-width:none;}
 .ctl-pane{display:flex;gap:6px;align-items:center;font-size:.76rem;color:var(--texto-suave);}
 .ctl-pane select,.ctl-pane input{border:1px solid var(--borda);border-radius:4px;padding:5px 8px;font-size:.82rem;background:#fff;color:var(--texto);}
 .user-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--areia-escura);font-size:.84rem;}
@@ -171,6 +163,26 @@ main.largo{max-width:none;}
 .chk-grid{display:flex;gap:14px;flex-wrap:wrap;font-size:.84rem;}
 .btn.danger{background:transparent;color:var(--erro);border:1px solid var(--erro);}
 body:not(.is-admin) .somente-admin{display:none !important;}
+/* submenu das áreas (páginas do app) */
+main.largo{max-width:none;padding:0 0 0;}
+main.largo section.pane{animation:none;}
+.subnav{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#fff;border-bottom:1px solid var(--borda);padding:0 20px;min-height:46px;box-shadow:0 1px 4px rgba(3,89,15,.06);}
+.sub-itens{display:flex;align-items:center;gap:2px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0;}
+.sub-itens::-webkit-scrollbar{display:none;}
+.sub-item{flex:0 0 auto;background:transparent;border:none;border-bottom:3px solid transparent;color:var(--texto-suave);font-size:.82rem;font-weight:600;padding:13px 12px 10px;cursor:pointer;white-space:nowrap;}
+.sub-item:hover{color:var(--azul-escuro);}
+.sub-item.ativo{color:var(--azul-escuro);border-bottom-color:var(--azul-claro);}
+.sub-grupo{flex:0 0 auto;font-size:.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--ouro);font-weight:700;padding:0 4px 0 12px;border-left:1px solid var(--areia-escura);margin-left:6px;}
+.sub-grupo:first-child{border-left:none;margin-left:0;padding-left:0;}
+.sub-dir{display:flex;align-items:center;gap:10px;margin-left:auto;padding:6px 0;}
+.sub-ctl{display:flex;gap:10px;}
+.sub-campo{display:flex;align-items:center;gap:6px;font-size:.68rem;text-transform:uppercase;letter-spacing:.5px;color:var(--texto-suave);}
+.sub-campo input,.sub-campo select{border:1px solid var(--borda);border-radius:4px;padding:5px 8px;font-size:.82rem;background:#fffdf9;color:var(--texto);text-transform:none;letter-spacing:0;}
+.sub-aviso .note{margin:12px 20px 0;}
+.embed-wrap{background:transparent;border:0;border-radius:0;overflow:hidden;}
+.embed-wrap iframe{display:block;width:100%;height:calc(100vh - 190px);min-height:520px;border:0;background:var(--areia);}
+body.modo-tv .embed-wrap iframe{height:calc(100vh - 190px);}
+
 .ac-kpis.c3{grid-template-columns:repeat(3,minmax(0,1fr));}
 </style>
 </head>
@@ -208,6 +220,7 @@ body:not(.is-admin) .somente-admin{display:none !important;}
   <nav class="tabs" id="tabs">
     <button data-tab="geral" class="active">Visão Geral</button>
     <button data-tab="comercial" data-area="crm">Comercial<span class="dot" data-dot="crm"></span></button>
+    <button data-tab="crmsam" data-area="sam">CRM SAM<span class="dot" data-dot="sam"></span></button>
     <button data-tab="faturamento" data-area="fat">Faturamento<span class="dot" data-dot="fat"></span></button>
     <button data-tab="assistencia" data-area="ast">Assistência Técnica<span class="dot" data-dot="ast"></span></button>
     <button data-tab="obras" data-area="obr">Obras<span class="dot" data-dot="obr"></span></button>
@@ -227,10 +240,11 @@ body:not(.is-admin) .somente-admin{display:none !important;}
   </section>
 
   <!-- ============================ TELAS DOS APPS (somente visualização) ============================ -->
-  <section class="pane" id="pane-comercial"><div class="embed-bar"><span class="ro">🔒 visualização</span><span>Tela do CRM Comercial com os dados da planilha. Pode filtrar e navegar; nada é gravado.</span><span class="fonte-chip" data-chip="crm"></span></div><div id="crm-aviso"></div><div class="embed-wrap" id="embed-crm"></div></section>
-  <section class="pane" id="pane-faturamento"><div class="embed-bar"><span class="ro">🔒 visualização</span><span>Tela do app de Faturamento. Pode trocar a data de referência e navegar; nada é gravado.</span><span class="fonte-chip" data-chip="fat"></span></div><div id="fat-aviso"></div><div class="embed-wrap" id="embed-fat"></div></section>
-  <section class="pane" id="pane-assistencia"><div class="embed-bar"><span class="ro">🔒 visualização</span><span>Tela do app de Assistência Técnica. Pode filtrar e navegar; nada é gravado.</span><span class="fonte-chip" data-chip="ast"></span></div><div id="ast-aviso"></div><div class="embed-wrap" id="embed-ast"></div></section>
-  <section class="pane" id="pane-obras"><div class="embed-bar"><span class="ro">🔒 visualização</span><span>Tela do app de Obras de Montagem. Pode filtrar e navegar; nada é gravado.</span><span class="fonte-chip" data-chip="obr"></span></div><div id="obr-aviso"></div><div class="embed-wrap" id="embed-obr"></div></section>
+  <section class="pane" id="pane-comercial"><div class="subnav" id="sub-crm"><div class="sub-itens"></div><div class="sub-dir"><div class="sub-ctl"></div><span class="fonte-chip" data-chip="crm"></span></div></div><div id="crm-aviso" class="sub-aviso"></div><div class="embed-wrap" id="embed-crm"></div></section>
+  <section class="pane" id="pane-faturamento"><div class="subnav" id="sub-fat"><div class="sub-itens"></div><div class="sub-dir"><div class="sub-ctl"></div><span class="fonte-chip" data-chip="fat"></span></div></div><div id="fat-aviso" class="sub-aviso"></div><div class="embed-wrap" id="embed-fat"></div></section>
+  <section class="pane" id="pane-assistencia"><div class="subnav" id="sub-ast"><div class="sub-itens"></div><div class="sub-dir"><div class="sub-ctl"></div><span class="fonte-chip" data-chip="ast"></span></div></div><div id="ast-aviso" class="sub-aviso"></div><div class="embed-wrap" id="embed-ast"></div></section>
+  <section class="pane" id="pane-obras"><div class="subnav" id="sub-obr"><div class="sub-itens"></div><div class="sub-dir"><div class="sub-ctl"></div><span class="fonte-chip" data-chip="obr"></span></div></div><div id="obr-aviso" class="sub-aviso"></div><div class="embed-wrap" id="embed-obr"></div></section>
+  <section class="pane" id="pane-crmsam"><div class="subnav" id="sub-sam"><div class="sub-itens"></div><div class="sub-dir"><div class="sub-ctl"></div><span class="fonte-chip" data-chip="sam"></span></div></div><div id="sam-aviso" class="sub-aviso"></div><div class="embed-wrap" id="embed-sam"></div></section>
 
   <!-- ============================ ORÇAMENTOS ============================ -->
   <section class="pane" id="pane-orcamentos">
@@ -311,6 +325,8 @@ const CAMINHOS = {
   obr: { pasta:'Execução de Montagem', clientes:'mcpo_clientes.json', obras:'mcpo_obras.json', lancamentos:'mcpo_lancamentos.json', tecnicos:'mcpo_tecnicos.json',
          alocacoes:'mcpo_alocacoes.json', listas:'mcpo_listas.json', acesso:'mcpo_acesso.json', app:'https://mcpoirrigacao.github.io/ACPTmontagem/' },
   orc: { pasta:'Orçamentos Montagem/Historico_montagem', params:'parametros.json', app:'https://mcpoirrigacao.github.io/orc_mcpo/' },
+  sam: { link:'https://maqcampoirrigacao.sharepoint.com/:f:/s/MCPOIRRIGACAO/IgBGAtqGFxaXRrJhUQ8lzqOJAd3QQQZ_zeb-i3Ox7QMpddU?e=Q8SRTl',
+         pasta:'CRM SAM', dados:'crm_sam_dados.json', app:'https://mcpoirrigacao.github.io/CRMSAM/' },
   crm: { ponte:'https://script.google.com/macros/s/AKfycbxi78ZBDdzaIc0e5FDsHCy4my1kQcVaZ96jzylCi8cPg4bW46afvLg2J1fT6IMRQMNX/exec',
          app:'https://mcpoirrigacao.github.io/CRMCOMERCIAL/' },
   /* Pasta "Painel" no SharePoint MCPOIRRIGACAO: o ÚNICO lugar onde o painel grava (usuários e parâmetros). */
@@ -559,33 +575,40 @@ async function baixarItemSP(item){
    PASTA "Painel" — usuários e parâmetros do painel
    É o único lugar em que o painel grava. Os dados dos apps são só lidos.
    ===================================================================== */
-let _pastaPainel=null; // {driveId, itemId}
+const _pastas={};
 function codificarCompartilhamento(url){ return 'u!'+btoa(unescape(encodeURIComponent(url))).replace(/=+$/,'').replace(/\//g,'_').replace(/\+/g,'-'); }
-async function pastaPainel(){
-  if(_pastaPainel) return _pastaPainel;
+/* localiza uma pasta do SharePoint pelo link de compartilhamento; se não der, pelo caminho */
+async function pastaPorLink(link, caminho){
+  const chave=link||caminho; if(_pastas[chave]) return _pastas[chave];
   const t=await getGraphToken(); if(!t) throw new Error('Sem token Microsoft.');
-  /* 1º pelo link da pasta; 2º pelo caminho Documentos Compartilhados/Painel */
-  try{
-    const r=await lerUrl('https://graph.microsoft.com/v1.0/shares/'+codificarCompartilhamento(CAMINHOS.painel.link)+'/driveItem',{headers:{Authorization:'Bearer '+t}});
-    if(r.ok){ const d=await r.json(); if(d.id&&d.parentReference){ _pastaPainel={driveId:d.parentReference.driveId, itemId:d.id}; return _pastaPainel; } }
-  }catch(e){}
+  for(const l of (link?[link, link.split('?')[0]]:[])){
+    try{
+      const r=await lerUrl('https://graph.microsoft.com/v1.0/shares/'+codificarCompartilhamento(l)+'/driveItem',{headers:{Authorization:'Bearer '+t}});
+      if(r.ok){ const d=await r.json(); if(d.id&&d.parentReference){ return (_pastas[chave]={driveId:d.parentReference.driveId, itemId:d.id}); } }
+    }catch(e){}
+  }
   const s=await getSiteId();
-  const r=await lerUrl(`https://graph.microsoft.com/v1.0/sites/${s}/drive/root:${spEncodePath(spCaminho(CAMINHOS.painel.pasta))}`,{headers:{Authorization:'Bearer '+t}});
-  if(!r.ok) throw new Error(r.status===404?'pasta Painel não encontrada':'sem acesso à pasta Painel ('+r.status+')');
-  const d=await r.json(); _pastaPainel={driveId:d.parentReference.driveId, itemId:d.id}; return _pastaPainel;
+  const r=await lerUrl(`https://graph.microsoft.com/v1.0/sites/${s}/drive/root:${spEncodePath(spCaminho(caminho))}`,{headers:{Authorization:'Bearer '+t}});
+  if(!r.ok) throw new Error(r.status===404?'pasta "'+caminho+'" não encontrada':'sem acesso à pasta "'+caminho+'" ('+r.status+')');
+  const d=await r.json(); return (_pastas[chave]={driveId:d.parentReference.driveId, itemId:d.id});
 }
-async function lerPainel(arquivo){
+async function lerNaPasta(p, arquivo){
   const t=await getGraphToken(); if(!t) throw new Error('Sem token Microsoft.');
-  const p=await pastaPainel();
   const url=`https://graph.microsoft.com/v1.0/drives/${p.driveId}/items/${p.itemId}:/${encodeURIComponent(arquivo)}`;
   const m=await lerUrl(url,{headers:{Authorization:'Bearer '+t}});
   if(m.status===404) return {missing:true, data:null, etag:null};
+  if(m.status===403||m.status===401) throw new Error('sem permissão de leitura em '+arquivo);
   if(!m.ok) throw new Error('falha ao ler '+arquivo+' ('+m.status+')');
   const meta=await m.json();
+  const ck='pasta:'+p.itemId+'/'+arquivo;
+  if(_cacheArq[ck] && meta.eTag && _cacheArq[ck].etag===meta.eTag) return {data:_cacheArq[ck].data, etag:meta.eTag};
   const c=await lerUrl(url+':/content',{headers:{Authorization:'Bearer '+t}});
   if(!c.ok) throw new Error('falha ao baixar '+arquivo);
-  return {data:JSON.parse(await c.text()), etag:meta.eTag, modificado:meta.lastModifiedDateTime};
+  const data=JSON.parse(await c.text()); _cacheArq[ck]={etag:meta.eTag, data};
+  return {data, etag:meta.eTag, modificado:meta.lastModifiedDateTime};
 }
+const pastaPainel=()=>pastaPorLink(CAMINHOS.painel.link, CAMINHOS.painel.pasta);
+async function lerPainel(arquivo){ const r=await lerNaPasta(await pastaPainel(), arquivo); return {data:r.data?JSON.parse(JSON.stringify(r.data)):null, etag:r.etag, missing:r.missing}; }
 /* ÚNICA função de gravação do painel: só aceita estes dois arquivos, só na pasta Painel. */
 const ARQUIVOS_GRAVAVEIS=[CAMINHOS.painel.acesso, CAMINHOS.painel.params];
 async function gravarPainel(arquivo, obj, etag){
@@ -614,7 +637,7 @@ async function alterarPainel(arquivo, alterar){
 }
 
 /* ------------------------------ estado do painel ------------------------------ */
-const PARAMS_PADRAO={ areas:{crm:true,fat:true,ast:true,obr:true,orc:true}, autoMin:10, tvSeg:45, crmSenha:'' };
+const PARAMS_PADRAO={ areas:{crm:true,sam:true,fat:true,ast:true,obr:true,orc:true}, autoMin:10, tvSeg:45, crmSenha:'' };
 const PAINEL={ acesso:{emailsAutorizados:[],emailsComuns:[]}, params:JSON.parse(JSON.stringify(PARAMS_PADRAO)), nivel:'', motivo:'', pastaOk:false, erroPasta:'' };
 function normAcesso(d){
   d=d||{}; const low=a=>(a||[]).map(x=>String(x).toLowerCase().trim()).filter(Boolean);
@@ -632,13 +655,14 @@ function normParams(d){
 /* ------------------------------ fontes ------------------------------ */
 const FONTES={
   crm:{ nome:'CRM Comercial', onde:'Planilha Google (Apps Script)', estado:'idle', msg:'', quando:null, dados:null },
+  sam:{ nome:'CRM SAM', onde:'SharePoint › CRM SAM', estado:'idle', msg:'', quando:null, dados:null },
   fat:{ nome:'Faturamento', onde:'SharePoint › Faturamento', estado:'idle', msg:'', quando:null, dados:null },
   ast:{ nome:'Assistência Técnica', onde:'SharePoint › assistencia', estado:'idle', msg:'', quando:null, dados:null },
   obr:{ nome:'Obras de Montagem', onde:'SharePoint › Execução de Montagem', estado:'idle', msg:'', quando:null, dados:null },
   orc:{ nome:'Orçamentos', onde:'SharePoint › Orçamentos Montagem/Historico_montagem', estado:'idle', msg:'', quando:null, dados:null },
 };
 const CARREGADORES={}, RENDER={}, RESUMO={};
-const ABA_FONTE={ comercial:'crm', faturamento:'fat', assistencia:'ast', obras:'obr', orcamentos:'orc' };
+const ABA_FONTE={ comercial:'crm', crmsam:'sam', faturamento:'fat', assistencia:'ast', obras:'obr', orcamentos:'orc' };
 function areaVisivel(k){ return PAINEL.nivel==='admin' || PAINEL.params.areas[k]!==false; }
 
 function marcarFonte(k, estado, msg){
@@ -704,7 +728,7 @@ async function renderAba(tab){
 function renderGeral(){
   const [y,m]=FILTRO.ym.split('-');
   document.getElementById('geral-desc').textContent=`Resumo de ${MESES_LONGO[+m-1]}/${y}. Clique num bloco para abrir a tela completa da área.`;
-  const ordem=[['crm','comercial'],['fat','faturamento'],['ast','assistencia'],['obr','obras'],['orc','orcamentos']].filter(([k])=>areaVisivel(k));
+  const ordem=[['crm','comercial'],['sam','crmsam'],['fat','faturamento'],['ast','assistencia'],['obr','obras'],['orc','orcamentos']].filter(([k])=>areaVisivel(k));
   document.getElementById('geral-areas').innerHTML=ordem.map(([k,tab])=>{
     const f=FONTES[k];
     let corpo;
@@ -732,11 +756,11 @@ function renderFontes(){
       <button class="btn ghost small" id="btn-escopo" type="button">${usandoReserva()?'Ativar login só leitura':'Voltar às permissões dos apps'}</button></div>`;
   const be=document.getElementById('btn-escopo');
   if(be) be.onclick=()=>{ const ir=usandoReserva(); if(ir&&!confirm('Só funciona se o administrador já liberou Sites.Read.All para o app no Azure. Continuar?')) return;
-    lsSet(LS_ESCOPO, ir?'leitura':'reserva'); escopoAtual=ir?SCOPES_LEITURA:SCOPES_RESERVA; _siteId=null; _pastaPainel=null; renderFontes(); carregarTudo(false); };
+    lsSet(LS_ESCOPO, ir?'leitura':'reserva'); escopoAtual=ir?SCOPES_LEITURA:SCOPES_RESERVA; _siteId=null; Object.keys(_pastas).forEach(x=>delete _pastas[x]); renderFontes(); carregarTudo(false); };
 }
 
 /* ------------------------------ admin: usuários e parâmetros ------------------------------ */
-const NOMES_AREA={crm:'Comercial',fat:'Faturamento',ast:'Assistência Técnica',obr:'Obras',orc:'Orçamentos'};
+const NOMES_AREA={crm:'Comercial',sam:'CRM SAM',fat:'Faturamento',ast:'Assistência Técnica',obr:'Obras',orc:'Orçamentos'};
 function renderAdmin(){
   if(PAINEL.nivel!=='admin') return;
   const lst=(arr,tipo)=>arr.length?arr.map((em,i)=>`<div class="user-row"><span>👤 ${escapeHtml(em)}${em===emailAtual()?' <span class="reg">você</span>':''}</span><button class="btn danger small" data-rem="${tipo}" data-i="${i}" type="button">remover</button></div>`).join('')
@@ -914,7 +938,7 @@ document.getElementById('btn-tv').addEventListener('click', ()=>{
   try{ document.documentElement.requestFullscreen(); }catch(e){}
   const seg=Math.max(10, n(PAINEL.params.tvSeg)||45);
   _tvTimer=setInterval(()=>{
-    const abas=['geral','comercial','faturamento','assistencia','obras','orcamentos'].filter(t=>t==='geral'||areaVisivel(ABA_FONTE[t]));
+    const abas=['geral','comercial','crmsam','faturamento','assistencia','obras','orcamentos'].filter(t=>t==='geral'||areaVisivel(ABA_FONTE[t]));
     const prox=abas[(abas.indexOf(abaAtiva())+1)%abas.length];
     document.querySelector(`nav.tabs button[data-tab="${prox}"]`).click(); window.scrollTo(0,0);
   }, seg*1000);
@@ -922,18 +946,16 @@ document.getElementById('btn-tv').addEventListener('click', ()=>{
 });
 
 /* =====================================================================
-   TELAS ORIGINAIS EMBUTIDAS (somente visualização)
-   Cada área abre a PRÓPRIA tela do app (o index.html publicado no GitHub),
-   dentro de um quadro isolado:
-   - sandbox sem "allow-same-origin": o app não enxerga o login nem os dados
-     guardados no navegador pelos apps de verdade;
-   - CSP connect-src 'none': o app não consegue fazer NENHUMA chamada de rede,
-     então não tem como gravar no SharePoint nem na planilha;
-   - os dados lidos pelo painel entram por uma "memória falsa" (localStorage)
-     e o login Microsoft do app é desligado (ele abre em modo visualização);
-   - botões de cadastro/edição e a aba Parâmetros de cada app ficam ocultos.
-   Como a tela vem do próprio app, qualquer melhoria publicada no app aparece
-   aqui automaticamente.
+   TELAS DOS APPS EM MODO VISUALIZAÇÃO
+   Cada área mostra o conteúdo da PRÓPRIA tela do app (o index.html publicado
+   no GitHub), sem o cabeçalho e o menu do app: as páginas viram o submenu do
+   painel. A tela roda num quadro isolado:
+   - sandbox sem "allow-same-origin": não enxerga o login nem os dados dos apps;
+   - CSP connect-src 'none': não consegue fazer chamada nenhuma de rede, então
+     não tem como gravar no SharePoint nem na planilha;
+   - os dados lidos pelo painel entram por uma memória falsa (localStorage) ou,
+     no CRM SAM, por um "SharePoint de mentira" que só responde leitura;
+   - botões de cadastro/edição e as abas de Parâmetros e Lançamento ficam ocultos.
    ===================================================================== */
 const EMBED_CSP = [
   "default-src 'none'",
@@ -949,28 +971,35 @@ const EMBED_CSP = [
 ].join('; ');
 
 const EMBED_CSS_COMUM = `#btn-ms-login,#ms-user-info,#sync-status,#btn-sync,#overlay-login,#overlay-negado,.somente-admin,
-nav.tabs button[data-tab="parametros"],#pane-parametros{display:none!important}`;
+nav.tabs button[data-tab="parametros"],#pane-parametros{display:none!important}
+html,body{background:transparent}`;
+/* apps no padrão MAQCAMPO: some o cabeçalho verde (marca + abas); o conteúdo sobe */
+const CSS_SEM_CABECALHO = `header.app-header{display:none!important} main{padding-top:14px!important}`;
+const MENU_ABAS = { sel:'nav.tabs button[data-tab]', chave:'data-tab' };
+const CONTROLES_CABECALHO = 'header.app-header input[id]:not([type=hidden]):not([type=file]), header.app-header select[id]';
 
-/* configuração por app: chave da memória, como iniciar e como atualizar sem perder filtros */
 const EMBED = {
   fat: {
     storage: d=>({ 'maqcampo-faturamento-v1': JSON.stringify(d) }),
-    css: `nav.tabs button[data-tab="lancamento"],#pane-lancamento,#btn-reset,#btn-add-feriado,#btn-add-loja{display:none!important}`,
+    css: CSS_SEM_CABECALHO+` nav.tabs button[data-tab="lancamento"],#pane-lancamento,#btn-reset,#btn-add-feriado,#btn-add-loja{display:none!important}`,
+    menu: MENU_ABAS, controles: CONTROLES_CABECALHO,
     init: `nivelAcesso=function(){return 'comum'}; applyAccess(); renderAll();`,
     refresh: `state=JSON.parse(localStorage.getItem('maqcampo-faturamento-v1')); renderAll();`,
   },
   ast: {
     storage: d=>({ 'maqcampo-assistencia-tecnica-v1': JSON.stringify(d) }),
-    css: `#btn-add-os,[data-edit-os],#btn-salvar-os,#btn-excluir-os,#btn-reset{display:none!important}`,
+    css: CSS_SEM_CABECALHO+` #btn-add-os,[data-edit-os],#btn-salvar-os,#btn-excluir-os,#btn-reset{display:none!important}`,
+    menu: MENU_ABAS, controles: CONTROLES_CABECALHO,
     init: `nivelAcesso=function(){return 'comum'}; applyAccess(); renderAll();`,
     refresh: `state=withDefaults(JSON.parse(localStorage.getItem('maqcampo-assistencia-tecnica-v1'))); renderAll();`,
   },
   obr: {
     storage: d=>({ 'maqcampo-mcpo-v3': JSON.stringify({ clientes:d.clientes, obras:d.obras, lancamentos:d.lancamentos, tecnicos:d.tecnicos, alocacoes:d.alocacoes, ultimaSync:new Date().toISOString() }) }),
     extra: d=>({ listas:d.listasBrutas||null }),
-    css: `#btn-nova-obra,#btn-novo-cliente,#btn-novo-lancamento,#btn-novo-tecnico,#btn-importar-orcamento,#btn-atualizar-obras-orcamento,#btn-salvar-registro,#btn-excluir-registro,
+    css: CSS_SEM_CABECALHO+` #btn-nova-obra,#btn-novo-cliente,#btn-novo-lancamento,#btn-novo-tecnico,#btn-importar-orcamento,#btn-atualizar-obras-orcamento,#btn-salvar-registro,#btn-excluir-registro,
 #btn-salvar-medicao,#btn-add-medicao,#btn-rem-medicao,#btn-pagar-montador-medicao,#btn-pagar-auxiliar-medicao,#btn-add-tecnico-equipe,#btn-forcar-alocacao,
 #btn-atualizar-periodo-equipe,#btn-migrar,#btn-aplicar-atualizar-obras,#btn-usar-orcamento{display:none!important}`,
+    menu: MENU_ABAS, controles: CONTROLES_CABECALHO,
     init: `nivelAcesso=function(){return 'comum'}; if(window.__PAINEL.extra.listas){ listasConfig=Object.assign({},listasConfig,window.__PAINEL.extra.listas); } applyAccess(); renderAll();`,
     refresh: `var c=JSON.parse(localStorage.getItem('maqcampo-mcpo-v3')); clientes=c.clientes||[]; obras=c.obras||[]; lancamentos=c.lancamentos||[]; tecnicos=c.tecnicos||[]; alocacoes=c.alocacoes||[];
       if(window.__PAINEL.extra.listas){ listasConfig=Object.assign({},listasConfig,window.__PAINEL.extra.listas); } renderAll();`,
@@ -978,14 +1007,26 @@ const EMBED = {
   crm: {
     storage: ()=>({}),
     extra: d=>({ crm:d.bruto }),
-    css: `#xlsxDrop,.link-row,#pickFileLink,#btnCriarPastas,.nav-item[data-view="acessos"],#movBar,.edit-bar,.anexo-acoes,.anexo-btn,#anexoBtn,.anexo-x,
+    /* o menu lateral do CRM vira o submenu do painel */
+    css: `.sidebar,.sidebar-backdrop,.sidebar-close-btn,.menu-toggle,.hamburger,#sidebarOpenBtn{display:none!important}
+#xlsxDrop,.link-row,#pickFileLink,#btnCriarPastas,.nav-item[data-view="acessos"],#movBar,.edit-bar,.anexo-acoes,.anexo-btn,#anexoBtn,.anexo-x,
 #btnMarkLost,#btnMarkWon,#acNovo,.ac-novo,#nvSalvar,#edSalvar,.proto-badge{display:none!important}
 .campo-edit{pointer-events:none!important}`,
+    menu: { sel:'.sidebar .nav-item[data-view]', chave:'data-view', rotulo:'span', grupo:'.nav-section-label' },
     init: `aplicarWorkbook(workbookDoAppsScript(window.__PAINEL.extra.crm), 'planilha do Google (painel)');`,
-    /* atualiza os dados sem zerar os filtros que a pessoa escolheu */
     refresh: `var r=processarPlanilha(workbookDoAppsScript(window.__PAINEL.extra.crm)); Object.keys(r.novo).forEach(function(k){ RECORDS[k]=r.novo[k]; });
       FACETS.vendedores=r.facets.vendedores; FACETS.cidades=r.facets.cidades; FACETS.ufs=r.facets.ufs; FACETS.marcas=r.facets.marcas;
       FONTE_DADOS='planilha do Google (painel) · '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); renderFilterSummaryBar(); renderCurrentView();`,
+  },
+  sam: {
+    /* o CRM SAM é todo fechado; ele "conversa" com um SharePoint de mentira que só responde leitura */
+    storage: ()=>({}),
+    graph: d=>({ pasta:'CRM SAM', email:emailAtual(),
+      arquivos:{ 'crm_sam_acesso.json':{ emailsAutorizados:[], emailsEditores:[], emailsComuns:[emailAtual()] }, 'crm_sam_dados.json':d.dados } }),
+    css: `header.top,.edit-only,.pode-editar,#btnUsers,#menu{display:none!important}`,
+    menu: { sel:'.toolbar .seg [role=tab]', chave:'id', ativoAttr:'aria-selected' },
+    init: ``,
+    refresh: ``,
   },
 };
 
@@ -1002,15 +1043,80 @@ function embedBoot(){
     Object.keys(P.storage||{}).forEach(function(k){ mem[k]=P.storage[k]; });
     Object.defineProperty(window,'localStorage',{value:fazStorage(mem),configurable:true});
     Object.defineProperty(window,'sessionStorage',{value:fazStorage({}),configurable:true});
-    /* login Microsoft do app desligado: ele entra em modo visualização local */
-    Object.defineProperty(window,'msal',{value:{PublicClientApplication:function(){ this.initialize=function(){ return Promise.reject(new Error('painel')); }; this.getAllAccounts=function(){ return []; }; }},writable:false,configurable:false});
+    var G=P.graph, versao=1;
+    if(G){
+      /* login "de mentira" com o e-mail de quem está no painel */
+      var conta={username:G.email,name:G.email,homeAccountId:'painel'};
+      var C=function(){ this.initialize=function(){ return Promise.resolve(); }; this.getAllAccounts=function(){ return [conta]; };
+        this.getActiveAccount=function(){ return conta; }; this.setActiveAccount=function(){};
+        this.acquireTokenSilent=function(){ return Promise.resolve({accessToken:'painel',account:conta}); };
+        this.acquireTokenPopup=this.acquireTokenSilent; this.loginPopup=function(){ return Promise.resolve({account:conta}); };
+        this.logoutPopup=function(){ return Promise.resolve(); }; this.handleRedirectPromise=function(){ return Promise.resolve(null); }; };
+      Object.defineProperty(window,'msal',{value:{PublicClientApplication:C},writable:false,configurable:false});
+      /* "SharePoint" que só responde leitura dos arquivos entregues pelo painel; qualquer gravação é recusada */
+      var resp=function(st,obj){ return Promise.resolve(new Response(JSON.stringify(obj),{status:st,headers:{'Content-Type':'application/json'}})); };
+      window.fetch=function(url,opt){
+        opt=opt||{}; url=String(url&&url.url||url); var met=String(opt.method||'GET').toUpperCase();
+        if(met!=='GET') return resp(403,{error:{code:'accessDenied',message:'Painel: somente visualização'}});
+        if(/\/shares\/[^/]+\/driveItem/.test(url)) return resp(200,{id:'PASTA',name:G.pasta,folder:{},parentReference:{driveId:'DRIVE'}});
+        var m=url.match(/\/items\/PASTA:\/([^:?]+)(:\/content)?/);
+        if(m){ var f=decodeURIComponent(m[1]); if(!Object.prototype.hasOwnProperty.call(G.arquivos,f)) return resp(404,{});
+          return m[2]?resp(200,G.arquivos[f]):resp(200,{id:f,name:f,eTag:'"painel-'+versao+'"'}); }
+        if(/\/me(\?|$)/.test(url)) return resp(200,{mail:G.email,userPrincipalName:G.email});
+        return resp(404,{});
+      };
+    } else {
+      /* login Microsoft do app desligado: ele abre em modo visualização local */
+      Object.defineProperty(window,'msal',{value:{PublicClientApplication:function(){ this.initialize=function(){ return Promise.reject(new Error('painel')); }; this.getAllAccounts=function(){ return []; }; }},writable:false,configurable:false});
+    }
     window.alert=function(){}; window.confirm=function(){ return false; }; window.prompt=function(){ return null; };
     document.addEventListener('dragstart',function(e){ e.preventDefault(); },true);
-    function rodar(code){ var s=document.createElement('script'); s.textContent='try{'+code+'}catch(e){console.error("[painel]",e);}'; (document.body||document.documentElement).appendChild(s); s.remove(); }
-    window.addEventListener('load',function(){ setTimeout(function(){ rodar(P.init); },80); });
+    function rodar(code){ if(!code) return; var s=document.createElement('script'); s.textContent='try{'+code+'}catch(e){console.error("[painel]",e);}'; (document.body||document.documentElement).appendChild(s); s.remove(); }
+    function avisar(msg){ try{ window.parent.postMessage(msg,'*'); }catch(e){} }
+
+    /* páginas do app → submenu do painel */
+    function itensMenu(){ var M=P.menu; if(!M) return [];
+      return Array.prototype.slice.call(document.querySelectorAll(M.sel)).filter(function(b){ return getComputedStyle(b).display!=='none'; }); }
+    var ultimoMenu='';
+    function enviarMenu(){
+      var M=P.menu; if(!M) return;
+      var itens=itensMenu().map(function(b){
+        var r=M.rotulo?(b.querySelector(M.rotulo)||b):b, g='';
+        if(M.grupo){ var p=b.previousElementSibling; while(p){ if(p.matches(M.grupo)){ g=p.textContent.trim(); break; } p=p.previousElementSibling; } }
+        var ativo=M.ativoAttr ? b.getAttribute(M.ativoAttr)==='true' : b.classList.contains('active');
+        return { id:b.getAttribute(M.chave), rotulo:r.textContent.replace(/\s+/g,' ').trim(), grupo:g, ativo:ativo };
+      });
+      var ctl=[];
+      if(P.controles) Array.prototype.slice.call(document.querySelectorAll(P.controles)).forEach(function(el){
+        if(getComputedStyle(el).display==='none'&&!el.closest('header')) return;
+        var lb=document.querySelector('label[for="'+el.id+'"]');
+        ctl.push({ id:el.id, tipo:el.tagName==='SELECT'?'select':(el.type||'text'), valor:el.value, rotulo:lb?lb.textContent.trim():el.id,
+          opcoes:el.tagName==='SELECT'?Array.prototype.map.call(el.options,function(o){ return [o.value,o.textContent]; }):null });
+      });
+      var s=JSON.stringify([itens,ctl]); if(s===ultimoMenu) return; ultimoMenu=s;
+      avisar({tipo:'menu', itens:itens, controles:ctl});
+    }
+    var _t=null; function agendar(){ clearTimeout(_t); _t=setTimeout(enviarMenu,60); }
+
+    window.addEventListener('load',function(){ setTimeout(function(){
+      rodar(P.init); enviarMenu();
+      new MutationObserver(agendar).observe(document.body,{subtree:true,attributes:true,attributeFilter:['class','aria-selected','style'],childList:true});
+      document.addEventListener('change',agendar,true);
+    },80); });
     window.addEventListener('message',function(ev){
-      if(ev.source!==window.parent) return; var d=ev.data||{}; if(d.tipo!=='atualizar') return;
-      Object.keys(d.storage||{}).forEach(function(k){ mem[k]=d.storage[k]; }); P.extra=d.extra||{}; rodar(P.refresh);
+      if(ev.source!==window.parent) return; var d=ev.data||{};
+      if(d.tipo==='atualizar'){
+        Object.keys(d.storage||{}).forEach(function(k){ mem[k]=d.storage[k]; }); P.extra=d.extra||{};
+        if(G&&d.graph){ G.arquivos=d.graph.arquivos; versao++; }
+        rodar(P.refresh);
+      } else if(d.tipo==='ir'){
+        var alvo=itensMenu().filter(function(b){ return b.getAttribute(P.menu.chave)===d.id; })[0];
+        if(alvo){ alvo.click(); window.scrollTo(0,0); var sc=document.querySelector('.main,.content,main'); if(sc) sc.scrollTop=0; }
+        agendar();
+      } else if(d.tipo==='set'){
+        var el=document.getElementById(d.id); if(!el) return; el.value=d.valor;
+        el.dispatchEvent(new Event('input',{bubbles:true})); el.dispatchEvent(new Event('change',{bubbles:true}));
+      }
     });
   })();
 }
@@ -1023,9 +1129,13 @@ async function htmlDoApp(k){
   _htmlApps[k]=await r.text(); return _htmlApps[k];
 }
 function jsonSeguro(o){ return JSON.stringify(o).replace(/</g,'\\u003c').replace(/[\u2028\u2029]/g,function(c){ return c==='\u2028'?'\\u2028':'\\u2029'; }); }
-function montarSrcdoc(k, html, dados){
+function payloadEmbed(k){
+  const cfg=EMBED[k], d=FONTES[k].dados;
+  return { storage:cfg.storage(d), extra:cfg.extra?cfg.extra(d):{}, graph:cfg.graph?cfg.graph(d):null };
+}
+function montarSrcdoc(k, html){
   const cfg=EMBED[k];
-  const payload={ storage:cfg.storage(dados), extra:cfg.extra?cfg.extra(dados):{}, init:cfg.init, refresh:cfg.refresh };
+  const payload=Object.assign(payloadEmbed(k), { init:cfg.init, refresh:cfg.refresh, menu:cfg.menu||null, controles:cfg.controles||null });
   const injeta=`<meta http-equiv="Content-Security-Policy" content="${EMBED_CSP}">`+
     `<script>window.__PAINEL=${jsonSeguro(payload)};(${embedBoot.toString()})();<\/script>`+
     `<style>${EMBED_CSS_COMUM}\n${cfg.css||''}</style>`;
@@ -1033,40 +1143,67 @@ function montarSrcdoc(k, html, dados){
   return m ? html.replace(m[0], m[0]+injeta) : injeta+html;
 }
 
-const _embedVersao={};   // assinatura dos dados já entregues a cada quadro
-function assinatura(k){ try{ return JSON.stringify(EMBED[k].storage(FONTES[k].dados))+'|'+JSON.stringify(EMBED[k].extra?EMBED[k].extra(FONTES[k].dados):''); }catch(e){ return String(Date.now()); } }
+const _embedVersao={}, _menus={};
+function assinatura(k){ try{ return JSON.stringify(payloadEmbed(k)); }catch(e){ return String(Date.now()); } }
 
 async function abrirEmbed(k){
   const wrap=document.getElementById('embed-'+k); if(!wrap) return;
   if(!avisoFonte(k)){ wrap.style.display='none'; return; }
   wrap.style.display='';
-  const ifr=wrap.querySelector('iframe');
-  if(ifr){ atualizarEmbed(k); return; }
-  wrap.innerHTML='<div class="vazio">Abrindo a tela do app…</div>';
+  if(wrap.querySelector('iframe')){ atualizarEmbed(k); renderSubmenu(k); return; }
+  wrap.innerHTML='<div class="vazio">Abrindo…</div>';
   try{
     const html=await htmlDoApp(k);
     const f=document.createElement('iframe');
     f.setAttribute('sandbox','allow-scripts allow-popups allow-downloads');
     f.setAttribute('referrerpolicy','no-referrer');
-    f.title=FONTES[k].nome;
+    f.dataset.area=k; f.title=FONTES[k].nome;
     _embedVersao[k]=assinatura(k);
-    f.srcdoc=montarSrcdoc(k, html, FONTES[k].dados);
+    f.srcdoc=montarSrcdoc(k, html);
     wrap.innerHTML=''; wrap.appendChild(f);
   }catch(e){
     console.error(e);
-    wrap.innerHTML=`<div class="note erro" style="margin:12px;">Não foi possível abrir a tela do app: ${escapeHtml(e.message)}</div>`;
+    wrap.innerHTML=`<div class="note erro" style="margin:12px;">Não foi possível abrir a tela: ${escapeHtml(e.message)}</div>`;
   }
 }
-/* dados novos: entrega ao quadro sem recarregar (mantém aba e filtros escolhidos) */
+/* dados novos: entrega ao quadro sem recarregar (mantém página e filtros escolhidos) */
 function atualizarEmbed(k){
   const wrap=document.getElementById('embed-'+k); const ifr=wrap&&wrap.querySelector('iframe');
   if(!ifr||!FONTES[k].dados) return;
   const sig=assinatura(k); if(sig===_embedVersao[k]) return;
   _embedVersao[k]=sig;
-  const cfg=EMBED[k];
-  try{ ifr.contentWindow.postMessage({tipo:'atualizar', storage:cfg.storage(FONTES[k].dados), extra:cfg.extra?cfg.extra(FONTES[k].dados):{}}, '*'); }catch(e){ console.error(e); }
+  try{ ifr.contentWindow.postMessage(Object.assign({tipo:'atualizar'}, payloadEmbed(k)), '*'); }catch(e){ console.error(e); }
 }
 function atualizarTodosEmbeds(){ Object.keys(EMBED).forEach(atualizarEmbed); }
+function quadroDe(k){ const w=document.getElementById('embed-'+k); return w&&w.querySelector('iframe'); }
+
+/* ---------------- submenu do painel (páginas do app) ---------------- */
+window.addEventListener('message', ev=>{
+  const ifr=[...document.querySelectorAll('.embed-wrap iframe')].find(f=>f.contentWindow===ev.source);
+  if(!ifr) return; const k=ifr.dataset.area, d=ev.data||{};
+  if(d.tipo==='menu'){ _menus[k]={itens:d.itens||[], controles:d.controles||[]}; renderSubmenu(k); }
+});
+function renderSubmenu(k){
+  const bar=document.getElementById('sub-'+k); if(!bar) return;
+  const m=_menus[k]||{itens:[],controles:[]};
+  let html='', grupo=null;
+  m.itens.forEach(it=>{
+    if(it.grupo && it.grupo!==grupo){ html+=`<span class="sub-grupo">${escapeHtml(it.grupo)}</span>`; grupo=it.grupo; }
+    html+=`<button type="button" class="sub-item${it.ativo?' ativo':''}" data-sub="${escapeHtml(it.id)}">${escapeHtml(it.rotulo)}</button>`;
+  });
+  bar.querySelector('.sub-itens').innerHTML=html;
+  bar.querySelector('.sub-ctl').innerHTML=m.controles.map(c=>{
+    const campo = c.tipo==='select'
+      ? `<select data-ctl="${escapeHtml(c.id)}">${(c.opcoes||[]).map(([v,t])=>`<option value="${escapeHtml(v)}"${v===c.valor?' selected':''}>${escapeHtml(t)}</option>`).join('')}</select>`
+      : `<input type="${escapeHtml(c.tipo)}" data-ctl="${escapeHtml(c.id)}" value="${escapeHtml(c.valor)}">`;
+    return `<label class="sub-campo"><span>${escapeHtml(c.rotulo)}</span>${campo}</label>`;
+  }).join('');
+  bar.querySelectorAll('[data-sub]').forEach(b=>b.onclick=()=>{
+    bar.querySelectorAll('.sub-item').forEach(x=>x.classList.toggle('ativo', x===b));
+    const f=quadroDe(k); if(f) f.contentWindow.postMessage({tipo:'ir', id:b.dataset.sub},'*');
+  });
+  bar.querySelectorAll('[data-ctl]').forEach(el=>el.onchange=()=>{ const f=quadroDe(k); if(f) f.contentWindow.postMessage({tipo:'set', id:el.dataset.ctl, valor:el.value},'*'); });
+}
 
 /* =====================================================================
    FATURAMENTO (app pecas) — mesmas regras de cálculo do app
@@ -1562,6 +1699,35 @@ RESUMO.crm = ()=>{
   ]};
 };
 
+
+/* =====================================================================
+   CRM SAM (app CRMSAM) — Grandes Contas
+   Arquivo crm_sam_dados.json na pasta "CRM SAM": {deals:[{etapa,valor,prob,fechamento,dataFechamento,pivos,ha,...}], config:{meta}}
+   ===================================================================== */
+CARREGADORES.sam = async ()=>{
+  const p=await pastaPorLink(CAMINHOS.sam.link, CAMINHOS.sam.pasta);
+  const r=await lerNaPasta(p, CAMINHOS.sam.dados);
+  if(r.missing||!r.data) throw new Error('arquivo de dados do CRM SAM não encontrado');
+  const dados=JSON.parse(JSON.stringify(r.data)); dados.deals=Array.isArray(dados.deals)?dados.deals:[]; dados.config=dados.config||{};
+  return { dados };
+};
+/* mesmas regras do app: etapas ativas, probabilidade da etapa (ou a informada), fechado no ano */
+const SAM_ETAPAS={prospeccao:10,qualificacao:25,projeto:40,proposta:60,negociacao:80,contrato:90,ganho:100,perdido:0};
+const SAM_ATIVAS=['prospeccao','qualificacao','projeto','proposta','negociacao','contrato'];
+function samProb(d){ return (d.prob!=null&&d.prob!=='')?Number(d.prob):(SAM_ETAPAS[d.etapa]||0); }
+RESUMO.sam = ()=>{
+  const deals=FONTES.sam.dados.dados.deals, cfg=FONTES.sam.dados.dados.config;
+  const ativos=deals.filter(d=>SAM_ATIVAS.includes(d.etapa));
+  const pipe=ativos.reduce((a,d)=>a+n(d.valor),0), pond=ativos.reduce((a,d)=>a+n(d.valor)*samProb(d)/100,0);
+  const ano=FILTRO.ym.slice(0,4);
+  const ganhos=deals.filter(d=>d.etapa==='ganho' && (!d.dataFechamento || String(d.dataFechamento).startsWith(ano)));
+  const vg=ganhos.reduce((a,d)=>a+n(d.valor),0), meta=n(cfg.meta);
+  return { kpis:[
+    { l:'Em negociação', v:brl0(pipe), s:int(ativos.length)+' oportunidade(s)' },
+    { l:'Previsão ponderada', v:brl0(pond), s:pipe?int(pond/pipe*100)+'% do valor':'' },
+    { l:'Fechado em '+ano, v:brl0(vg), cls:'pos', s:meta?pct(vg/meta)+' da meta de '+brl0(meta):int(ganhos.length)+' contrato(s)', bar:meta?vg/meta:null },
+  ]};
+};
 
 /* ------------------------------ início ------------------------------ */
 renderGeral();
