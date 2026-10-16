@@ -152,6 +152,26 @@ table.dt tr.total-row td{background:var(--areia-escura);font-weight:700;color:va
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 body.modo-tv main{max-width:none;}
 @media (max-width:700px){.hdr-ctrls{margin-left:0;width:100%;}}
+
+/* telas originais embutidas */
+.embed-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px;font-size:.74rem;color:var(--texto-suave);}
+.embed-bar .ro{font-weight:700;color:var(--azul-escuro);background:#e4f1e6;border-radius:10px;padding:3px 10px;}
+.embed-bar a{color:var(--azul);}
+.embed-wrap{background:#fff;border:1px solid var(--borda);border-radius:8px;overflow:hidden;}
+.embed-wrap iframe{display:block;width:100%;height:calc(100vh - 205px);min-height:560px;border:0;background:var(--areia);}
+body.modo-tv .embed-wrap iframe{height:calc(100vh - 150px);}
+main.largo{max-width:none;}
+.ctl-pane{display:flex;gap:6px;align-items:center;font-size:.76rem;color:var(--texto-suave);}
+.ctl-pane select,.ctl-pane input{border:1px solid var(--borda);border-radius:4px;padding:5px 8px;font-size:.82rem;background:#fff;color:var(--texto);}
+.user-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--areia-escura);font-size:.84rem;}
+.user-row span{flex:1;}
+.add-row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;}
+.add-row input{flex:1;min-width:200px;border:1px solid var(--borda);border-radius:4px;padding:8px 10px;font-size:.88rem;background:#fffdf9;}
+.sub-tit{font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;color:var(--texto-suave);font-weight:700;margin:14px 0 6px;}
+.chk-grid{display:flex;gap:14px;flex-wrap:wrap;font-size:.84rem;}
+.btn.danger{background:transparent;color:var(--erro);border:1px solid var(--erro);}
+body:not(.is-admin) .somente-admin{display:none !important;}
+.ac-kpis.c3{grid-template-columns:repeat(3,minmax(0,1fr));}
 </style>
 </head>
 <body>
@@ -161,21 +181,9 @@ body.modo-tv main{max-width:none;}
     <div class="brand">
       <span class="brand-mark">MAQCAMPO</span>
       <span class="brand-sub">Painel da Diretoria · MCPO</span>
-      <span class="selo-leitura" title="Este painel só lê os dados. Nada é gravado nos apps nem na planilha.">🔒 somente leitura</span>
+      <span class="selo-leitura" title="Os dados dos apps são só lidos. Nada é gravado nos apps nem na planilha.">🔒 visualização</span>
     </div>
     <div class="hdr-ctrls">
-      <div class="ctl">
-        <label for="f-modo">Período</label>
-        <div class="ctl-row">
-          <select id="f-modo">
-            <option value="mes">Mês</option>
-            <option value="ano">Ano</option>
-            <option value="tudo">Tudo</option>
-          </select>
-          <input type="month" id="f-mes">
-          <select id="f-ano"></select>
-        </div>
-      </div>
       <div class="ctl">
         <label for="f-auto">Atualização automática</label>
         <div class="ctl-row">
@@ -199,146 +207,36 @@ body.modo-tv main{max-width:none;}
   </div>
   <nav class="tabs" id="tabs">
     <button data-tab="geral" class="active">Visão Geral</button>
-    <button data-tab="comercial">Comercial<span class="dot" data-dot="crm"></span></button>
-    <button data-tab="faturamento">Faturamento<span class="dot" data-dot="fat"></span></button>
-    <button data-tab="assistencia">Assistência Técnica<span class="dot" data-dot="ast"></span></button>
-    <button data-tab="obras">Obras<span class="dot" data-dot="obr"></span></button>
-    <button data-tab="orcamentos">Orçamentos<span class="dot" data-dot="orc"></span></button>
-    <button data-tab="fontes">⚙ Fontes</button>
+    <button data-tab="comercial" data-area="crm">Comercial<span class="dot" data-dot="crm"></span></button>
+    <button data-tab="faturamento" data-area="fat">Faturamento<span class="dot" data-dot="fat"></span></button>
+    <button data-tab="assistencia" data-area="ast">Assistência Técnica<span class="dot" data-dot="ast"></span></button>
+    <button data-tab="obras" data-area="obr">Obras<span class="dot" data-dot="obr"></span></button>
+    <button data-tab="orcamentos" data-area="orc">Orçamentos<span class="dot" data-dot="orc"></span></button>
+    <button data-tab="fontes" class="somente-admin">⚙ Fontes e Parâmetros</button>
   </nav>
 </header>
 
-<main>
+<main id="main">
   <!-- ============================ VISÃO GERAL ============================ -->
   <section class="pane active" id="pane-geral">
     <div class="pane-head">
-      <div><h2 class="pane-title">Visão Geral</h2><p class="pane-desc" id="geral-desc">Resumo de todas as áreas. Clique num bloco para abrir os detalhes.</p></div>
+      <div><h2 class="pane-title">Visão Geral</h2><p class="pane-desc" id="geral-desc">Resumo de cada área. Clique num bloco para abrir a tela completa.</p></div>
+      <div class="ctl-pane" style="margin-left:auto;"><label for="g-mes">Mês</label><input type="month" id="g-mes"></div>
     </div>
     <div class="area-grid" id="geral-areas"></div>
   </section>
 
-  <!-- ============================ COMERCIAL (CRM) ============================ -->
-  <section class="pane" id="pane-comercial">
-    <div class="pane-head">
-      <div><h2 class="pane-title">Comercial · Funil</h2><p class="pane-desc">Planilha central do CRM Comercial. Funil pela previsão de fechamento; vendas pela data da venda.</p></div>
-      <span class="fonte-chip" data-chip="crm"></span>
-    </div>
-    <div id="crm-aviso"></div>
-    <div id="crm-corpo">
-      <div class="totals-strip c5" id="crm-kpis"></div>
-      <div class="g2">
-        <div class="card"><h3>Valor por estágio <span class="h3-side">funil do período</span></h3><div class="chart-box"><canvas id="c-crm-estagio"></canvas></div></div>
-        <div class="card"><h3>Funil por chance de fechamento <span class="h3-side">negócios em aberto</span></h3><div class="chart-box"><canvas id="c-crm-chance"></canvas></div></div>
-      </div>
-      <div class="gap"></div>
-      <div class="card"><h3>Previsão de fechamento × vendas por mês <span class="h3-side">previsão ponderada pela chance</span></h3><div class="chart-box"><canvas id="c-crm-mes"></canvas></div></div>
-      <div class="g2">
-        <div class="card"><h3>Ranking de vendedores <span class="h3-side">em aberto × vendido</span></h3><div class="chart-box alto"><canvas id="c-crm-vend"></canvas></div></div>
-        <div class="card"><h3>Por estado <span class="h3-side">funil do período</span></h3><div class="chart-box alto"><canvas id="c-crm-uf"></canvas></div></div>
-      </div>
-      <div class="gap"></div>
-      <div class="g2">
-        <div class="card"><h3>Receita mês a mês <span class="h3-side">comissão e serviços</span></h3><div class="chart-box"><canvas id="c-crm-receita"></canvas></div></div>
-        <div class="card"><h3>Acompanhamento acumulado</h3><div class="chart-box"><canvas id="c-crm-acum"></canvas></div></div>
-      </div>
-      <div class="gap"></div>
-      <div class="card"><h3>Maiores negócios em aberto <span class="h3-side" id="crm-top-side"></span></h3><div class="tablewrap" id="crm-top"></div></div>
-    </div>
-  </section>
-
-  <!-- ============================ FATURAMENTO ============================ -->
-  <section class="pane" id="pane-faturamento">
-    <div class="pane-head">
-      <div><h2 class="pane-title">Faturamento · Lojas</h2><p class="pane-desc" id="fat-desc">App de Acompanhamento de Faturamento.</p></div>
-      <span class="fonte-chip" data-chip="fat"></span>
-    </div>
-    <div id="fat-aviso"></div>
-    <div id="fat-corpo">
-      <div class="block-title">Mês de referência <small id="fat-mes-lbl"></small></div>
-      <div class="totals-strip c5" id="fat-strip-mes"></div>
-      <div class="block-title">Período da meta <small id="fat-per-lbl"></small></div>
-      <div class="totals-strip c5" id="fat-strip-per"></div>
-      <div class="block-title">Funil do período</div>
-      <div class="totals-strip" id="fat-strip-funil"></div>
-      <div class="g2">
-        <div class="card"><h3>Faturamento mês a mês <span class="h3-side">realizado × meta</span></h3><div class="chart-box"><canvas id="c-fat-mensal"></canvas></div></div>
-        <div class="card"><h3>Realizado acumulado × meta acumulada <span class="h3-side">por semana</span></h3><div class="chart-box"><canvas id="c-fat-acum"></canvas></div></div>
-      </div>
-      <div class="gap"></div>
-      <div class="g3">
-        <div class="card"><h3>Faturamento por loja <span class="h3-side">período</span></h3><div class="chart-box alto"><canvas id="c-fat-lojas"></canvas></div></div>
-        <div class="card"><h3>Conversão por loja <span class="h3-side">faturado ÷ orçamento</span></h3><div class="chart-box alto"><canvas id="c-fat-conv"></canvas></div></div>
-        <div class="card"><h3>Taxa de perda por mês <span class="h3-side">perdido ÷ orçamento</span></h3><div class="chart-box alto"><canvas id="c-fat-perda"></canvas></div></div>
-      </div>
-      <div class="gap"></div>
-      <div class="card"><h3>Lojas — mês de referência <span class="h3-side" id="fat-lojas-side"></span></h3><div class="tablewrap" id="fat-tbl-lojas"></div></div>
-    </div>
-  </section>
-
-  <!-- ============================ ASSISTÊNCIA ============================ -->
-  <section class="pane" id="pane-assistencia">
-    <div class="pane-head">
-      <div><h2 class="pane-title">Assistência Técnica</h2><p class="pane-desc">App de Faturamento de Assistência Técnica (OS).</p></div>
-      <span class="fonte-chip" data-chip="ast"></span>
-    </div>
-    <div id="ast-aviso"></div>
-    <div id="ast-corpo">
-      <div class="block-title">Ordens de serviço <small id="ast-kpi-lbl"></small></div>
-      <div class="totals-strip c5" id="ast-strip-kpi"></div>
-      <div class="block-title">Meta do mês <small id="ast-meta-lbl"></small></div>
-      <div class="totals-strip" id="ast-strip-meta"></div>
-      <div class="block-title">OS em aberto <small>tempo corrido desde a abertura</small></div>
-      <div class="totals-strip" id="ast-strip-aberto"></div>
-      <div class="g2">
-        <div class="card"><h3>Meta do mês × realizado por região</h3><div class="chart-box"><canvas id="c-ast-regiao"></canvas></div></div>
-        <div class="card"><h3>Situação de faturamento <span class="h3-side">R$</span></h3><div class="chart-box"><canvas id="c-ast-situacao"></canvas></div></div>
-      </div>
-      <div class="gap"></div>
-      <div class="g3">
-        <div class="card"><h3>OS em aberto por base</h3><div class="chart-box alto"><canvas id="c-ast-base"></canvas></div></div>
-        <div class="card"><h3>Tipo de OS <span class="h3-side">R$</span></h3><div class="chart-box alto"><canvas id="c-ast-tipo"></canvas></div></div>
-        <div class="card"><h3>Status da OS <span class="h3-side">quantidade</span></h3><div class="chart-box alto"><canvas id="c-ast-status"></canvas></div></div>
-      </div>
-      <div class="gap"></div>
-      <div class="g2">
-        <div class="card"><h3>Técnicos — horas</h3><div class="chart-box alto"><canvas id="c-ast-tec"></canvas></div></div>
-        <div class="card"><h3>OS abertas há mais tempo</h3><div class="tablewrap" id="ast-tbl-abertas"></div></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============================ OBRAS ============================ -->
-  <section class="pane" id="pane-obras">
-    <div class="pane-head">
-      <div><h2 class="pane-title">Obras de Montagem</h2><p class="pane-desc">App Clientes, Obras e Lançamentos. Lançamentos pela data deles; obras pela data de negociação.</p></div>
-      <span class="fonte-chip" data-chip="obr"></span>
-    </div>
-    <div id="obr-aviso"></div>
-    <div id="obr-corpo">
-      <div class="totals-strip" id="obr-strip"></div>
-      <div class="totals-strip c5" id="obr-strip-status"></div>
-      <div class="g2">
-        <div class="card"><h3>Balanço financeiro <span class="h3-side">por tipo de lançamento</span></h3><div class="chart-box"><canvas id="c-obr-balanco"></canvas></div></div>
-        <div class="card"><h3>Resultado por regional <span class="h3-side">negociado − custo</span></h3><div class="chart-box"><canvas id="c-obr-regional"></canvas></div></div>
-      </div>
-      <div class="gap"></div>
-      <div class="g2">
-        <div class="card"><h3>Custo por categoria</h3><div class="chart-box alto" id="wrap-obr-cat"><canvas id="c-obr-cat"></canvas></div></div>
-        <div class="card"><h3>Resultado por cliente <span class="h3-side">15 maiores</span></h3><div class="chart-box alto" id="wrap-obr-cli"><canvas id="c-obr-cli"></canvas></div></div>
-      </div>
-      <div class="gap"></div>
-      <div class="card"><h3>Por obra <span class="h3-side" id="obr-tbl-side"></span></h3><div class="tablewrap" id="obr-tbl"></div></div>
-      <div class="g2">
-        <div class="card"><h3>Obras atrasadas</h3><div class="tablewrap" id="obr-atrasadas"></div></div>
-        <div class="card"><h3>Obras em andamento sem técnico hoje</h3><div class="tablewrap" id="obr-semtec"></div></div>
-      </div>
-    </div>
-  </section>
+  <!-- ============================ TELAS DOS APPS (somente visualização) ============================ -->
+  <section class="pane" id="pane-comercial"><div class="embed-bar"><span class="ro">🔒 visualização</span><span>Tela do CRM Comercial com os dados da planilha. Pode filtrar e navegar; nada é gravado.</span><span class="fonte-chip" data-chip="crm"></span></div><div id="crm-aviso"></div><div class="embed-wrap" id="embed-crm"></div></section>
+  <section class="pane" id="pane-faturamento"><div class="embed-bar"><span class="ro">🔒 visualização</span><span>Tela do app de Faturamento. Pode trocar a data de referência e navegar; nada é gravado.</span><span class="fonte-chip" data-chip="fat"></span></div><div id="fat-aviso"></div><div class="embed-wrap" id="embed-fat"></div></section>
+  <section class="pane" id="pane-assistencia"><div class="embed-bar"><span class="ro">🔒 visualização</span><span>Tela do app de Assistência Técnica. Pode filtrar e navegar; nada é gravado.</span><span class="fonte-chip" data-chip="ast"></span></div><div id="ast-aviso"></div><div class="embed-wrap" id="embed-ast"></div></section>
+  <section class="pane" id="pane-obras"><div class="embed-bar"><span class="ro">🔒 visualização</span><span>Tela do app de Obras de Montagem. Pode filtrar e navegar; nada é gravado.</span><span class="fonte-chip" data-chip="obr"></span></div><div id="obr-aviso"></div><div class="embed-wrap" id="embed-obr"></div></section>
 
   <!-- ============================ ORÇAMENTOS ============================ -->
   <section class="pane" id="pane-orcamentos">
     <div class="pane-head">
-      <div><h2 class="pane-title">Orçamentos de Montagem</h2><p class="pane-desc">Histórico do app de Orçamentação (todos os vendedores), pela data em que o orçamento foi salvo.</p></div>
+      <div><h2 class="pane-title">Orçamentos de Montagem</h2><p class="pane-desc">Histórico do app de Orçamentação (todos os vendedores), pela data em que cada orçamento foi salvo.</p></div>
+      <div class="ctl-pane"><select id="o-modo"><option value="mes">Mês</option><option value="ano">Ano</option><option value="tudo">Tudo</option></select><input type="month" id="o-mes"><select id="o-ano"></select><input type="search" id="o-busca" placeholder="Buscar cliente, obra ou vendedor"></div>
       <span class="fonte-chip" data-chip="orc"></span>
     </div>
     <div id="orc-aviso"></div>
@@ -350,33 +248,47 @@ body.modo-tv main{max-width:none;}
         <div class="card"><h3>Maiores clientes <span class="h3-side">valor orçado</span></h3><div class="chart-box alto"><canvas id="c-orc-cli"></canvas></div></div>
       </div>
       <div class="gap"></div>
-      <div class="card"><h3>Orçamentos do período <span class="h3-side" id="orc-tbl-side"></span></h3><div class="tablewrap" id="orc-tbl"></div></div>
+      <div class="card"><h3>Histórico <span class="h3-side" id="orc-tbl-side"></span></h3><div class="tablewrap" id="orc-tbl"></div></div>
     </div>
   </section>
 
-  <!-- ============================ FONTES ============================ -->
+  <!-- ============================ FONTES E PARÂMETROS (admin) ============================ -->
   <section class="pane" id="pane-fontes">
-    <div class="pane-head"><div><h2 class="pane-title">⚙ Fontes de dados</h2><p class="pane-desc">De onde o painel lê cada área. Nada aqui altera os apps ou a planilha.</p></div></div>
+    <div class="pane-head"><div><h2 class="pane-title">⚙ Fontes e Parâmetros</h2><p class="pane-desc">Visível só para administradores do painel. Os parâmetros ficam na pasta <b>Painel</b> do SharePoint MCPOIRRIGACAO — é o único lugar onde o painel grava.</p></div></div>
     <div class="card"><h3>Situação das fontes</h3><div class="fontes-lista" id="fontes-lista"></div></div>
     <div class="card">
-      <h3>CRM Comercial · acesso à planilha <span class="h3-side">guardado só neste navegador</span></h3>
-      <p style="font-size:.84rem;color:var(--texto-suave);margin:0 0 12px;">O CRM lê a planilha do Google por uma senha. Informe-a uma vez neste aparelho. O painel só faz a <b>leitura</b> — não existe nenhum botão ou chamada de gravação aqui.</p>
-      <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;">
-        <div class="field" style="flex:1;min-width:220px;"><label for="crm-senha">Senha de leitura da planilha</label><input type="password" id="crm-senha" autocomplete="off" placeholder="••••••"></div>
-        <button class="btn primary" id="btn-crm-senha" type="button">Usar e atualizar</button>
-        <button class="btn ghost" id="btn-crm-esquecer" type="button">Esquecer neste aparelho</button>
-      </div>
+      <h3>Usuários &amp; acesso <span class="h3-side">login Microsoft · painel_acesso.json</span></h3>
+      <div class="sub-tit">Administradores — veem tudo e editam esta aba</div>
+      <div id="lista-admins"></div>
+      <div class="add-row"><input type="text" id="inp-novo-admin" placeholder="email@mcpoirrigacao.com.br"><button class="btn primary small" id="btn-add-admin" type="button">+ Admin</button></div>
+      <div class="sub-tit">Usuários comuns — só visualizam as áreas liberadas abaixo</div>
+      <div id="lista-comuns"></div>
+      <div class="add-row"><input type="text" id="inp-novo-comum" placeholder="email@mcpoirrigacao.com.br"><button class="btn ghost small" id="btn-add-comum" type="button">+ Usuário</button></div>
+      <div id="acesso-motivo" class="note" style="margin-top:12px;"></div>
     </div>
     <div class="card">
-      <h3>Quem pode abrir o painel</h3>
-      <p style="font-size:.84rem;color:var(--texto-suave);margin:0;">Entra quem é <b>administrador</b> (ou gestor, no app de Orçamentos) em pelo menos um dos apps, ou quem estiver na lista do arquivo <code>Painel Diretoria/painel_acesso.json</code> no SharePoint MCPOIRRIGACAO (formato: <code>{"emails":["nome@maqcampo.com.br"]}</code>). Cada pessoa ainda precisa ter permissão de leitura nas pastas do SharePoint.</p>
-      <div id="acesso-motivo" style="margin-top:10px;font-size:.8rem;"></div>
+      <h3>Parâmetros do painel <span class="h3-side">painel_parametros.json</span></h3>
+      <div class="sub-tit">Áreas visíveis para usuários comuns</div>
+      <div class="chk-grid" id="p-areas"></div>
+      <div class="sub-tit">Atualização</div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;">
+        <div class="field"><label for="p-auto">Atualização automática padrão (min, 0 = desligada)</label><input type="number" id="p-auto" min="0" step="1"></div>
+        <div class="field"><label for="p-tv">Modo TV: trocar de aba a cada (segundos)</label><input type="number" id="p-tv" min="10" step="5"></div>
+      </div>
+      <div class="sub-tit">CRM Comercial — senha de leitura da planilha</div>
+      <div class="field"><label for="p-crm">Senha <span id="p-crm-st"></span></label><input type="password" id="p-crm" autocomplete="off" placeholder="deixe em branco para manter a atual"></div>
+      <p style="font-size:.76rem;color:var(--texto-suave);margin:6px 0 0;">Fica no arquivo de parâmetros da pasta Painel, para que todos os usuários do painel vejam o Comercial sem digitar senha. Quem tiver acesso de leitura a essa pasta consegue ver a senha.</p>
+      <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
+        <button class="btn primary" id="btn-salvar-params" type="button">Salvar parâmetros</button>
+        <button class="btn danger" id="btn-limpar-crm" type="button">Apagar senha do CRM</button>
+      </div>
+      <div id="params-info" style="font-size:.74rem;color:var(--texto-suave);margin-top:8px;"></div>
     </div>
   </section>
 </main>
 
 <div class="overlay" id="overlay-login"><div class="box"><div class="emoji">🔐</div><h2>Painel da Diretoria</h2><p>Entre com sua conta Microsoft da MAQCAMPO para ver os indicadores.</p><button onclick="document.getElementById('btn-ms-login').click()" class="btn primary" style="width:100%;padding:12px;" type="button">🔑 Entrar com Microsoft</button></div></div>
-<div class="overlay" id="overlay-negado"><div class="box"><div class="emoji">🔒</div><h2>Acesso Restrito</h2><p>Este painel é da diretoria. Seu e-mail não está liberado em nenhum dos apps.</p><div id="overlay-email-info" style="background:var(--areia);border-radius:6px;padding:10px 14px;font-size:.82rem;color:var(--texto-suave);margin-bottom:20px;word-break:break-all;"></div><button onclick="document.getElementById('btn-ms-login').click()" class="btn ghost" style="width:100%;" type="button">Entrar com outra conta</button></div></div>
+<div class="overlay" id="overlay-negado"><div class="box"><div class="emoji">🔒</div><h2>Acesso Restrito</h2><p>Seu e-mail não está liberado no painel. Peça a um administrador do painel para incluir você.</p><div id="overlay-email-info" style="background:var(--areia);border-radius:6px;padding:10px 14px;font-size:.82rem;color:var(--texto-suave);margin-bottom:20px;word-break:break-all;"></div><button onclick="document.getElementById('btn-ms-login').click()" class="btn ghost" style="width:100%;" type="button">Entrar com outra conta</button></div></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -396,12 +308,14 @@ const SP_BIBLIOTECA   = 'Documentos Compartilhados';
 const CAMINHOS = {
   fat: { pasta:'Faturamento', dados:'faturamento_dados.json', acesso:'faturamento_acesso.json', app:'https://mcpoirrigacao.github.io/pecas/' },
   ast: { pasta:'assistencia', dados:'assistencia_dados.json', acesso:'assistencia_acesso.json', app:'https://mcpoirrigacao.github.io/assistencia/' },
-  obr: { pasta:'Execução de Montagem', clientes:'mcpo_clientes.json', obras:'mcpo_obras.json', lancamentos:'mcpo_lancamentos.json',
+  obr: { pasta:'Execução de Montagem', clientes:'mcpo_clientes.json', obras:'mcpo_obras.json', lancamentos:'mcpo_lancamentos.json', tecnicos:'mcpo_tecnicos.json',
          alocacoes:'mcpo_alocacoes.json', listas:'mcpo_listas.json', acesso:'mcpo_acesso.json', app:'https://mcpoirrigacao.github.io/ACPTmontagem/' },
   orc: { pasta:'Orçamentos Montagem/Historico_montagem', params:'parametros.json', app:'https://mcpoirrigacao.github.io/orc_mcpo/' },
   crm: { ponte:'https://script.google.com/macros/s/AKfycbxi78ZBDdzaIc0e5FDsHCy4my1kQcVaZ96jzylCi8cPg4bW46afvLg2J1fT6IMRQMNX/exec',
          app:'https://mcpoirrigacao.github.io/CRMCOMERCIAL/' },
-  painel: { pasta:'Painel Diretoria', acesso:'painel_acesso.json' },
+  /* Pasta "Painel" no SharePoint MCPOIRRIGACAO: o ÚNICO lugar onde o painel grava (usuários e parâmetros). */
+  painel: { link:'https://maqcampoirrigacao.sharepoint.com/:f:/s/MCPOIRRIGACAO/IgCd79cL3HR6SoDH79MxwSZRAWG2ngJVooBVRaxIJiapAiA?e=jWzmFv',
+            pasta:'Painel', acesso:'painel_acesso.json', params:'painel_parametros.json' },
 };
 
 /* O painel pede à Microsoft SÓ permissão de leitura. */
@@ -411,9 +325,7 @@ const SCOPES_LEITURA = ['User.Read','Sites.Read.All'];
    continua sem nenhuma chamada de gravação (veja lerUrl). */
 const SCOPES_RESERVA = ['User.Read','Files.ReadWrite','Sites.ReadWrite.All'];
 const LS_ESCOPO = 'painel-diretoria-escopo';
-const LS_FILTRO = 'painel-diretoria-filtro';
 const LS_AUTO   = 'painel-diretoria-auto';
-const LS_CRM    = 'painel-diretoria-crm-senha';
 
 /* ------------------------------ helpers ------------------------------- */
 function n(v){ const x=Number(v); return isFinite(x)?x:0; }
@@ -454,8 +366,9 @@ const td=(v,cls)=>`<td class="${cls||''}">${v}</td>`;
 const tdn=(v,neg)=>`<td class="num${neg?' neg':''}">${v}</td>`;
 
 /* ------------------------ leitura (só GET) ------------------------ */
-/* Toda chamada de rede do painel passa por aqui. Qualquer método que não
-   seja GET é recusado — é a garantia de que o painel não grava nada. */
+/* Toda leitura do painel passa por aqui. Qualquer método que não seja GET é
+   recusado. A única gravação do painel é gravarPainel(), mais abaixo, que só
+   aceita os dois arquivos de configuração da pasta Painel. */
 function lerUrl(url, opts){
   opts=Object.assign({}, opts||{});
   if(opts.method && String(opts.method).toUpperCase()!=='GET') throw new Error('Painel somente leitura: método '+opts.method+' bloqueado.');
@@ -465,13 +378,8 @@ function lerUrl(url, opts){
 }
 
 /* ------------------------------ período ------------------------------ */
-let FILTRO = (function(){
-  const d=new Date(), ymHoje=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
-  let f={modo:'mes', ym:ymHoje, ano:String(d.getFullYear())};
-  try{ const s=JSON.parse(lsGet(LS_FILTRO,'')||'null'); if(s&&s.modo) f=Object.assign(f,s); }catch(e){}
-  return f;
-})();
-function salvarFiltro(){ lsSet(LS_FILTRO, JSON.stringify(FILTRO)); }
+/* Visão Geral: sempre por mês (abre no mês atual). */
+let FILTRO = (function(){ const d=new Date(); const ym=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); return {modo:'mes', ym, ano:String(d.getFullYear())}; })();
 function passaYm(ym){
   if(FILTRO.modo==='tudo') return true;
   if(!ym) return false;
@@ -646,8 +554,82 @@ async function baixarItemSP(item){
   return data;
 }
 
+
+/* =====================================================================
+   PASTA "Painel" — usuários e parâmetros do painel
+   É o único lugar em que o painel grava. Os dados dos apps são só lidos.
+   ===================================================================== */
+let _pastaPainel=null; // {driveId, itemId}
+function codificarCompartilhamento(url){ return 'u!'+btoa(unescape(encodeURIComponent(url))).replace(/=+$/,'').replace(/\//g,'_').replace(/\+/g,'-'); }
+async function pastaPainel(){
+  if(_pastaPainel) return _pastaPainel;
+  const t=await getGraphToken(); if(!t) throw new Error('Sem token Microsoft.');
+  /* 1º pelo link da pasta; 2º pelo caminho Documentos Compartilhados/Painel */
+  try{
+    const r=await lerUrl('https://graph.microsoft.com/v1.0/shares/'+codificarCompartilhamento(CAMINHOS.painel.link)+'/driveItem',{headers:{Authorization:'Bearer '+t}});
+    if(r.ok){ const d=await r.json(); if(d.id&&d.parentReference){ _pastaPainel={driveId:d.parentReference.driveId, itemId:d.id}; return _pastaPainel; } }
+  }catch(e){}
+  const s=await getSiteId();
+  const r=await lerUrl(`https://graph.microsoft.com/v1.0/sites/${s}/drive/root:${spEncodePath(spCaminho(CAMINHOS.painel.pasta))}`,{headers:{Authorization:'Bearer '+t}});
+  if(!r.ok) throw new Error(r.status===404?'pasta Painel não encontrada':'sem acesso à pasta Painel ('+r.status+')');
+  const d=await r.json(); _pastaPainel={driveId:d.parentReference.driveId, itemId:d.id}; return _pastaPainel;
+}
+async function lerPainel(arquivo){
+  const t=await getGraphToken(); if(!t) throw new Error('Sem token Microsoft.');
+  const p=await pastaPainel();
+  const url=`https://graph.microsoft.com/v1.0/drives/${p.driveId}/items/${p.itemId}:/${encodeURIComponent(arquivo)}`;
+  const m=await lerUrl(url,{headers:{Authorization:'Bearer '+t}});
+  if(m.status===404) return {missing:true, data:null, etag:null};
+  if(!m.ok) throw new Error('falha ao ler '+arquivo+' ('+m.status+')');
+  const meta=await m.json();
+  const c=await lerUrl(url+':/content',{headers:{Authorization:'Bearer '+t}});
+  if(!c.ok) throw new Error('falha ao baixar '+arquivo);
+  return {data:JSON.parse(await c.text()), etag:meta.eTag, modificado:meta.lastModifiedDateTime};
+}
+/* ÚNICA função de gravação do painel: só aceita estes dois arquivos, só na pasta Painel. */
+const ARQUIVOS_GRAVAVEIS=[CAMINHOS.painel.acesso, CAMINHOS.painel.params];
+async function gravarPainel(arquivo, obj, etag){
+  if(!ARQUIVOS_GRAVAVEIS.includes(arquivo)) throw new Error('gravação bloqueada: '+arquivo);
+  const t=await getGraphToken(); if(!t) throw new Error('Sem token Microsoft.');
+  const p=await pastaPainel();
+  /* com eTag: só grava se ninguém mudou o arquivo; sem eTag: só cria se ele ainda não existe */
+  const url=`https://graph.microsoft.com/v1.0/drives/${p.driveId}/items/${p.itemId}:/${encodeURIComponent(arquivo)}:/content`+(etag?'':'?@microsoft.graph.conflictBehavior=fail');
+  const h={Authorization:'Bearer '+t,'Content-Type':'application/json'}; if(etag) h['If-Match']=etag;
+  const r=await fetch(url,{method:'PUT', headers:h, body:JSON.stringify(obj,null,2)});
+  let ne=null; if(r.ok){ try{ ne=(await r.json()).eTag; }catch(e){} }
+  return {ok:r.ok, status:r.status, etag:ne};
+}
+/* lê → aplica a alteração → grava; se outra pessoa gravou no meio, relê e aplica de novo */
+async function alterarPainel(arquivo, alterar){
+  for(let i=0;i<4;i++){
+    const atual=await lerPainel(arquivo);
+    const novo=alterar(JSON.parse(JSON.stringify(atual.data||{})));
+    const r=await gravarPainel(arquivo, novo, atual.etag);
+    if(r.ok) return novo;
+    if(r.status!==412 && r.status!==409){
+      throw new Error(r.status===403||r.status===401 ? 'sem permissão para gravar na pasta Painel' : 'falha ao gravar ('+r.status+')');
+    }
+  }
+  throw new Error('outra pessoa está alterando ao mesmo tempo — tente de novo');
+}
+
+/* ------------------------------ estado do painel ------------------------------ */
+const PARAMS_PADRAO={ areas:{crm:true,fat:true,ast:true,obr:true,orc:true}, autoMin:10, tvSeg:45, crmSenha:'' };
+const PAINEL={ acesso:{emailsAutorizados:[],emailsComuns:[]}, params:JSON.parse(JSON.stringify(PARAMS_PADRAO)), nivel:'', motivo:'', pastaOk:false, erroPasta:'' };
+function normAcesso(d){
+  d=d||{}; const low=a=>(a||[]).map(x=>String(x).toLowerCase().trim()).filter(Boolean);
+  return { emailsAutorizados:low(d.emailsAutorizados), emailsComuns:low(d.emailsComuns).concat(low(d.emails)) }; // "emails" = formato antigo
+}
+function normParams(d){
+  d=d||{}; const p=JSON.parse(JSON.stringify(PARAMS_PADRAO));
+  p.areas=Object.assign(p.areas, d.areas||{});
+  if(d.autoMin!=null) p.autoMin=Math.max(0,n(d.autoMin));
+  if(d.tvSeg!=null) p.tvSeg=Math.max(10,n(d.tvSeg)||45);
+  p.crmSenha=d.crmSenha||''; p.atualizadoPor=d.atualizadoPor||''; p.atualizadoEm=d.atualizadoEm||'';
+  return p;
+}
+
 /* ------------------------------ fontes ------------------------------ */
-/* estado de cada área: idle | carregando | ok | erro | semsenha */
 const FONTES={
   crm:{ nome:'CRM Comercial', onde:'Planilha Google (Apps Script)', estado:'idle', msg:'', quando:null, dados:null },
   fat:{ nome:'Faturamento', onde:'SharePoint › Faturamento', estado:'idle', msg:'', quando:null, dados:null },
@@ -655,9 +637,9 @@ const FONTES={
   obr:{ nome:'Obras de Montagem', onde:'SharePoint › Execução de Montagem', estado:'idle', msg:'', quando:null, dados:null },
   orc:{ nome:'Orçamentos', onde:'SharePoint › Orçamentos Montagem/Historico_montagem', estado:'idle', msg:'', quando:null, dados:null },
 };
-const CARREGADORES={}; // preenchido pelos módulos: CARREGADORES.fat = async()=>dados
-const RENDER={};       // RENDER.fat = ()=>{...}
-const RESUMO={};       // RESUMO.fat = ()=>({kpis:[...]})
+const CARREGADORES={}, RENDER={}, RESUMO={};
+const ABA_FONTE={ comercial:'crm', faturamento:'fat', assistencia:'ast', obras:'obr', orcamentos:'orc' };
+function areaVisivel(k){ return PAINEL.nivel==='admin' || PAINEL.params.areas[k]!==false; }
 
 function marcarFonte(k, estado, msg){
   const f=FONTES[k]; f.estado=estado; f.msg=msg||'';
@@ -666,16 +648,16 @@ function marcarFonte(k, estado, msg){
   document.querySelectorAll(`[data-chip="${k}"]`).forEach(c=>{
     const app=CAMINHOS[k]&&CAMINHOS[k].app;
     c.classList.toggle('erro', estado==='erro'||estado==='semsenha');
-    c.innerHTML = estado==='ok' ? `☁ ${escapeHtml(f.onde)} · lido às ${horaBr(f.quando)}${app?` · <a href="${app}" target="_blank" rel="noopener">abrir app ↗</a>`:''}`
+    c.innerHTML = estado==='ok' ? `☁ lido às ${horaBr(f.quando)}${app?` · <a href="${app}" target="_blank" rel="noopener">abrir o app ↗</a>`:''}`
       : estado==='carregando' ? '⏳ lendo…'
-      : estado==='semsenha' ? '🔑 informe a senha da planilha em ⚙ Fontes'
+      : estado==='semsenha' ? '🔑 falta a senha da planilha (⚙ Fontes e Parâmetros)'
       : estado==='erro' ? '⚠ '+escapeHtml(f.msg||'falha na leitura') : '';
   });
-  renderFontes();
+  if(abaAtiva()==='fontes') renderFontes();
 }
-
 let _carregando=false, _ultimaCarga=0;
 async function carregarFonte(k){
+  if(!areaVisivel(k)){ FONTES[k].dados=null; marcarFonte(k,'idle'); return; }
   marcarFonte(k,'carregando');
   try{
     const d=await CARREGADORES[k]();
@@ -684,109 +666,183 @@ async function carregarFonte(k){
   }catch(e){ console.error('['+k+']',e); marcarFonte(k,'erro', e&&e.message||String(e)); }
 }
 async function carregarTudo(silencioso){
-  if(_carregando||!msAccount||!acessoLiberado) return;
+  if(_carregando||!msAccount||!PAINEL.nivel||PAINEL.nivel==='bloqueado') return;
   _carregando=true; setSyncStatus('⏳ lendo dados…','saving');
+  await recarregarConfigPainel();
   await Promise.all(Object.keys(FONTES).map(k=>carregarFonte(k)));
   _carregando=false; _ultimaCarga=Date.now();
   const erros=Object.values(FONTES).filter(f=>f.estado==='erro').length;
   setSyncStatus(erros?`⚠ ${erros} fonte(s) com erro · ${horaBr(new Date())}`:`☁ atualizado às ${horaBr(new Date())}`, erros?'warn':'ok');
-  renderTudo();
+  renderAba(abaAtiva());
+  atualizarTodosEmbeds();
   if(!silencioso) toast('Dados atualizados.');
 }
 function setSyncStatus(t,c){ const el=document.getElementById('sync-status'); el.textContent=t; el.className='sync-status '+(c||''); el.style.display=t?'inline-block':'none'; }
 
 /* ------------------------------ render ------------------------------ */
 function abaAtiva(){ const b=document.querySelector('nav.tabs button.active'); return b?b.dataset.tab:'geral'; }
-const ABA_FONTE={ comercial:'crm', faturamento:'fat', assistencia:'ast', obras:'obr', orcamentos:'orc' };
 function avisoFonte(k){
   const f=FONTES[k], av=document.getElementById(k+'-aviso'), corpo=document.getElementById(k+'-corpo');
-  if(!av) return true;
   let html='';
   if(f.estado==='erro') html=`<div class="note erro">Não foi possível ler esta área: ${escapeHtml(f.msg)}. As outras áreas continuam funcionando.</div>`;
-  else if(f.estado==='semsenha') html=`<div class="note">Para ver o Comercial, informe a senha de leitura da planilha em <a href="#" onclick="document.querySelector('[data-tab=fontes]').click();return false;">⚙ Fontes</a>.</div>`;
-  else if(f.estado==='carregando'&&!f.dados) html=`<div class="note">Lendo os dados…</div>`;
-  else if(f.estado==='idle') html=`<div class="note">Aguardando login.</div>`;
-  av.innerHTML=html;
-  const ok=!!f.dados;
-  if(corpo) corpo.style.display=ok?'':'none';
-  return ok;
+  else if(f.estado==='semsenha') html=`<div class="note">O Comercial precisa da senha de leitura da planilha. ${PAINEL.nivel==='admin'?'Informe em ⚙ Fontes e Parâmetros.':'Peça a um administrador do painel para cadastrá-la.'}</div>`;
+  else if(!f.dados) html=`<div class="note">Lendo os dados…</div>`;
+  if(av) av.innerHTML=html;
+  if(corpo) corpo.style.display=f.dados?'':'none';
+  return !!f.dados;
 }
 async function renderAba(tab){
   tab=tab||abaAtiva();
-  if(tab==='fontes'){ renderFontes(); return; }
-  await carregarChartJs().catch(()=>{});
+  if(tab==='fontes'){ renderFontes(); renderAdmin(); return; }
   if(tab==='geral'){ renderGeral(); return; }
   const k=ABA_FONTE[tab]; if(!k) return;
+  if(EMBED[k]){ abrirEmbed(k); return; }
   if(!avisoFonte(k)) return;
-  try{ RENDER[k](); }catch(e){ console.error(e); document.getElementById(k+'-aviso').innerHTML=`<div class="note erro">Erro ao montar os gráficos: ${escapeHtml(e.message)}</div>`; }
+  await carregarChartJs().catch(()=>{});
+  try{ RENDER[k](); }catch(e){ console.error(e); document.getElementById(k+'-aviso').innerHTML=`<div class="note erro">Erro ao montar a tela: ${escapeHtml(e.message)}</div>`; }
 }
-function renderTudo(){ renderAba(abaAtiva()); renderFontes(); }
-
 function renderGeral(){
-  document.getElementById('geral-desc').textContent='Resumo de todas as áreas · '+descricaoFiltro()+'. Clique num bloco para abrir os detalhes.';
-  const ordem=[['crm','comercial'],['fat','faturamento'],['ast','assistencia'],['obr','obras'],['orc','orcamentos']];
+  const [y,m]=FILTRO.ym.split('-');
+  document.getElementById('geral-desc').textContent=`Resumo de ${MESES_LONGO[+m-1]}/${y}. Clique num bloco para abrir a tela completa da área.`;
+  const ordem=[['crm','comercial'],['fat','faturamento'],['ast','assistencia'],['obr','obras'],['orc','orcamentos']].filter(([k])=>areaVisivel(k));
   document.getElementById('geral-areas').innerHTML=ordem.map(([k,tab])=>{
     const f=FONTES[k];
     let corpo;
     if(f.dados){
       let r; try{ r=RESUMO[k](); }catch(e){ console.error(e); r={kpis:[], msg:'Erro ao calcular: '+e.message}; }
-      corpo = (r.msg?`<div class="ac-msg">${escapeHtml(r.msg)}</div>`:'')+`<div class="ac-kpis">${r.kpis.map(x=>`<div class="ac-kpi"><div class="l">${x.l}</div><div class="v ${x.cls||''}">${x.v}</div>${x.s?`<div class="s">${x.s}</div>`:''}</div>`).join('')}</div>`;
+      corpo=(r.msg?`<div class="ac-msg">${escapeHtml(r.msg)}</div>`:'')+`<div class="ac-kpis c3">${r.kpis.map(x=>`<div class="ac-kpi"><div class="l">${x.l}</div><div class="v ${x.cls||''}">${x.v}</div>${x.s?`<div class="s">${x.s}</div>`:''}${x.bar!=null?`<div class="bar"><span style="width:${Math.max(0,Math.min(100,(x.bar||0)*100))}%"></span></div>`:''}</div>`).join('')}</div>`;
     } else if(f.estado==='erro') corpo=`<div class="ac-msg erro">⚠ ${escapeHtml(f.msg)}</div>`;
-    else if(f.estado==='semsenha') corpo=`<div class="ac-msg">🔑 Informe a senha da planilha em ⚙ Fontes.</div>`;
+    else if(f.estado==='semsenha') corpo=`<div class="ac-msg">🔑 Falta a senha da planilha.</div>`;
     else corpo=`<div class="ac-msg">⏳ Lendo…</div>`;
-    return `<div class="area-card ${f.estado==='erro'?'erro':''}" data-ir="${tab}">
-      <div class="ac-head"><span class="ac-titulo">${f.nome}</span><span class="ac-fonte">${f.quando?'lido às '+horaBr(f.quando):''}</span></div>${corpo}</div>`;
-  }).join('');
+    return `<div class="area-card ${f.estado==='erro'?'erro':''}" data-ir="${tab}"><div class="ac-head"><span class="ac-titulo">${f.nome}</span><span class="ac-fonte">${f.quando?'lido às '+horaBr(f.quando):''}</span></div>${corpo}</div>`;
+  }).join('') || '<div class="vazio">Nenhuma área liberada para o seu usuário.</div>';
   document.querySelectorAll('#geral-areas [data-ir]').forEach(el=>el.addEventListener('click',()=>{ const b=document.querySelector(`nav.tabs button[data-tab="${el.dataset.ir}"]`); if(b) b.click(); }));
 }
 function renderFontes(){
   const el=document.getElementById('fontes-lista'); if(!el) return;
   el.innerHTML=Object.keys(FONTES).map(k=>{
     const f=FONTES[k];
-    const st={ok:['ok','✓ lido'],erro:['erro','⚠ erro'],carregando:['carregando','⏳ lendo'],semsenha:['erro','🔑 falta senha'],idle:['carregando','aguardando']}[f.estado];
+    const st={ok:['ok','✓ lido'],erro:['erro','⚠ erro'],carregando:['carregando','⏳ lendo'],semsenha:['erro','🔑 falta senha'],idle:['carregando','—']}[f.estado];
     return `<div class="linha"><b>${f.nome}</b><span class="st ${st[0]}">${st[1]}</span><span class="det">${escapeHtml(f.onde)}${f.quando?' · última leitura às '+horaBr(f.quando):''}${f.msg?' · '+escapeHtml(f.msg):''}</span></div>`;
-  }).join('') + `<div class="linha"><b>Permissão Microsoft</b><span class="st ${usandoReserva()?'carregando':''}">${usandoReserva()?'mesma dos apps':'só leitura'}</span><span class="det">${usandoReserva()
-      ? 'O login usa as mesmas permissões já aprovadas para os outros apps. O painel continua sem nenhuma função de gravação. Quando o administrador liberar Sites.Read.All no Azure, ative o login só leitura:'
-      : 'O login pede apenas leitura (Sites.Read.All). Mesmo que alguém altere o código, o token não permite gravar.'}</span>
+  }).join('') +
+  `<div class="linha"><b>Pasta Painel</b><span class="st ${PAINEL.pastaOk?'':'erro'}">${PAINEL.pastaOk?'✓ ok':'⚠ '+escapeHtml(PAINEL.erroPasta||'sem acesso')}</span><span class="det">usuários e parâmetros do painel (painel_acesso.json · painel_parametros.json)</span></div>` +
+  `<div class="linha"><b>Permissão Microsoft</b><span class="st ${usandoReserva()?'carregando':''}">${usandoReserva()?'mesma dos apps':'só leitura'}</span><span class="det">${usandoReserva()
+      ? 'O login usa as permissões já aprovadas para os outros apps. As telas dos apps continuam sem nenhuma gravação. Quando o administrador liberar Sites.Read.All no Azure, dá para ativar o login só leitura (aí os parâmetros desta aba deixam de poder ser salvos).'
+      : 'O login pede apenas leitura (Sites.Read.All). Os parâmetros desta aba não podem ser salvos neste modo.'}</span>
       <button class="btn ghost small" id="btn-escopo" type="button">${usandoReserva()?'Ativar login só leitura':'Voltar às permissões dos apps'}</button></div>`;
   const be=document.getElementById('btn-escopo');
   if(be) be.onclick=()=>{ const ir=usandoReserva(); if(ir&&!confirm('Só funciona se o administrador já liberou Sites.Read.All para o app no Azure. Continuar?')) return;
-    lsSet(LS_ESCOPO, ir?'leitura':'reserva'); escopoAtual=ir?SCOPES_LEITURA:SCOPES_RESERVA; renderFontes(); if(msAccount&&acessoLiberado) carregarTudo(false); };
+    lsSet(LS_ESCOPO, ir?'leitura':'reserva'); escopoAtual=ir?SCOPES_LEITURA:SCOPES_RESERVA; _siteId=null; _pastaPainel=null; renderFontes(); carregarTudo(false); };
 }
 
+/* ------------------------------ admin: usuários e parâmetros ------------------------------ */
+const NOMES_AREA={crm:'Comercial',fat:'Faturamento',ast:'Assistência Técnica',obr:'Obras',orc:'Orçamentos'};
+function renderAdmin(){
+  if(PAINEL.nivel!=='admin') return;
+  const lst=(arr,tipo)=>arr.length?arr.map((em,i)=>`<div class="user-row"><span>👤 ${escapeHtml(em)}${em===emailAtual()?' <span class="reg">você</span>':''}</span><button class="btn danger small" data-rem="${tipo}" data-i="${i}" type="button">remover</button></div>`).join('')
+    :`<div style="color:var(--texto-suave);font-size:.82rem;padding:4px 0;">${tipo==='admin'?'Nenhum administrador cadastrado ainda — cadastre você mesmo primeiro.':'Nenhum usuário comum.'}</div>`;
+  document.getElementById('lista-admins').innerHTML=lst(PAINEL.acesso.emailsAutorizados,'admin');
+  document.getElementById('lista-comuns').innerHTML=lst(PAINEL.acesso.emailsComuns,'comum');
+  document.querySelectorAll('[data-rem]').forEach(b=>b.onclick=()=>removerUsuario(b.dataset.rem, +b.dataset.i));
+  document.getElementById('acesso-motivo').innerHTML=`<b>${escapeHtml(emailAtual())}</b> — ${escapeHtml(PAINEL.motivo)}`;
+  const p=PAINEL.params;
+  document.getElementById('p-areas').innerHTML=Object.keys(NOMES_AREA).map(k=>`<label><input type="checkbox" data-area-chk="${k}" ${p.areas[k]!==false?'checked':''}> ${NOMES_AREA[k]}</label>`).join('');
+  document.getElementById('p-auto').value=p.autoMin; document.getElementById('p-tv').value=p.tvSeg;
+  document.getElementById('p-crm-st').textContent=p.crmSenha?'(cadastrada)':'(não cadastrada)';
+  document.getElementById('params-info').textContent=p.atualizadoEm?`Última alteração: ${new Date(p.atualizadoEm).toLocaleString('pt-BR')} por ${p.atualizadoPor||'—'}`:'';
+}
+async function salvarAcesso(alterar, msgOk){
+  try{
+    const novo=await alterarPainel(CAMINHOS.painel.acesso, d=>{ const a=normAcesso(d); alterar(a); return {emailsAutorizados:a.emailsAutorizados, emailsComuns:a.emailsComuns.filter(e=>!a.emailsAutorizados.includes(e))}; });
+    PAINEL.acesso=normAcesso(novo); definirNivel(); applyAccess(); renderAdmin(); toast(msgOk);
+  }catch(e){ toast('Não foi possível salvar: '+e.message); }
+}
+function addUsuario(tipo){
+  const inp=document.getElementById(tipo==='admin'?'inp-novo-admin':'inp-novo-comum');
+  const em=inp.value.trim().toLowerCase(); if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){ toast('E-mail inválido.'); return; }
+  inp.value='';
+  salvarAcesso(a=>{ if(tipo==='admin'){ if(!a.emailsAutorizados.includes(em)) a.emailsAutorizados.push(em); a.emailsComuns=a.emailsComuns.filter(x=>x!==em); }
+    else { if(a.emailsAutorizados.includes(em)) return; if(!a.emailsComuns.includes(em)) a.emailsComuns.push(em); } }, tipo==='admin'?'Administrador adicionado.':'Usuário adicionado.');
+}
+function removerUsuario(tipo, i){
+  const lista=tipo==='admin'?PAINEL.acesso.emailsAutorizados:PAINEL.acesso.emailsComuns, em=lista[i]; if(!em) return;
+  if(tipo==='admin' && em===emailAtual() && !confirm('Remover você mesmo dos administradores? Você perde acesso a esta aba.')) return;
+  if(tipo==='admin' && PAINEL.acesso.emailsAutorizados.length===1){ toast('Precisa ficar pelo menos um administrador.'); return; }
+  salvarAcesso(a=>{ if(tipo==='admin') a.emailsAutorizados=a.emailsAutorizados.filter(x=>x!==em); else a.emailsComuns=a.emailsComuns.filter(x=>x!==em); }, 'Removido.');
+}
+document.getElementById('btn-add-admin').addEventListener('click',()=>addUsuario('admin'));
+document.getElementById('btn-add-comum').addEventListener('click',()=>addUsuario('comum'));
+async function salvarParams(alterar){
+  try{
+    const novo=await alterarPainel(CAMINHOS.painel.params, d=>{ const p=normParams(d); alterar(p); p.atualizadoPor=emailAtual(); p.atualizadoEm=new Date().toISOString(); return p; });
+    const senhaMudou=(novo.crmSenha||'')!==(PAINEL.params.crmSenha||'');
+    PAINEL.params=normParams(novo); applyAccess(); renderAdmin(); toast('Parâmetros salvos.');
+    if(!lsGet(LS_AUTO,'')) { document.getElementById('f-auto').value=String(PAINEL.params.autoMin); iniciarAuto(); }
+    if(senhaMudou) await carregarFonte('crm');
+    renderAba(abaAtiva());
+  }catch(e){ toast('Não foi possível salvar: '+e.message); }
+}
+document.getElementById('btn-salvar-params').addEventListener('click',()=>{
+  const areas={}; document.querySelectorAll('[data-area-chk]').forEach(c=>areas[c.dataset.areaChk]=c.checked);
+  const auto=Math.max(0,n(document.getElementById('p-auto').value)), tv=Math.max(10,n(document.getElementById('p-tv').value)||45);
+  const senha=document.getElementById('p-crm').value.trim(); document.getElementById('p-crm').value='';
+  salvarParams(p=>{ p.areas=areas; p.autoMin=auto; p.tvSeg=tv; if(senha) p.crmSenha=senha; });
+});
+document.getElementById('btn-limpar-crm').addEventListener('click',()=>{ if(confirm('Apagar a senha do CRM? O Comercial deixa de carregar para todos.')) salvarParams(p=>{ p.crmSenha=''; }); });
+
 /* ------------------------------ acesso ------------------------------ */
-let acessoLiberado=false, acessoMotivo='';
 function emailAtual(){ return msAccount?(msAccount.username||'').toLowerCase():''; }
-async function verificarAcesso(){
+async function recarregarConfigPainel(){
+  try{
+    const [a,p]=await Promise.all([lerPainel(CAMINHOS.painel.acesso), lerPainel(CAMINHOS.painel.params)]);
+    PAINEL.acesso=normAcesso(a.data); PAINEL.params=normParams(p.data); PAINEL.pastaOk=true; PAINEL.erroPasta='';
+  }catch(e){ console.warn('pasta Painel:', e); PAINEL.pastaOk=false; PAINEL.erroPasta=e.message; }
+}
+let _adminEmAlgumApp=null;
+async function adminEmAlgumApp(){
+  if(_adminEmAlgumApp) return _adminEmAlgumApp;
   const e=emailAtual(), low=a=>(a||[]).map(x=>String(x).toLowerCase().trim());
   const fontes=[
-    ['Painel Diretoria', ()=>lerJsonSP(CAMINHOS.painel.pasta, CAMINHOS.painel.acesso), d=>low(d.emails)],
     ['Faturamento', ()=>lerJsonSP(CAMINHOS.fat.pasta, CAMINHOS.fat.acesso), d=>low(d.emailsAutorizados)],
     ['Assistência', ()=>lerJsonSP(CAMINHOS.ast.pasta, CAMINHOS.ast.acesso), d=>low(d.emailsAutorizados)],
     ['Obras', ()=>lerJsonSP(CAMINHOS.obr.pasta, CAMINHOS.obr.acesso), d=>low(d.emailsAutorizados)],
     ['Orçamentos', ()=>lerJsonSP(CAMINHOS.orc.pasta, CAMINHOS.orc.params), d=>low(d.emailsAutorizados).concat(low(d.emailsGestores))],
   ];
-  const res=await Promise.all(fontes.map(async([nome,ler,lista])=>{ try{ const r=await ler(); return {nome, lido:!r.missing, emails:r.data?lista(r.data):[]}; }catch(err){ return {nome, lido:false, erro:err.message, emails:[]}; } }));
-  const onde=res.filter(r=>r.emails.includes(e)).map(r=>r.nome);
-  const algumaLista=res.some(r=>r.lido && r.emails.length);
-  if(onde.length){ acessoLiberado=true; acessoMotivo='Liberado como administrador em: '+onde.join(', ')+'.'; }
-  else if(!algumaLista){ acessoLiberado=true; acessoMotivo='Nenhuma lista de acesso pôde ser lida — acesso controlado só pelas permissões do SharePoint.'; }
-  else { acessoLiberado=false; acessoMotivo='E-mail não encontrado nas listas de administradores.'; }
-  const m=document.getElementById('acesso-motivo'); if(m) m.innerHTML=`<b>${escapeHtml(emailAtual())}</b> — ${escapeHtml(acessoMotivo)}`;
+  const res=await Promise.all(fontes.map(async([nome,ler,lista])=>{ try{ const r=await ler(); return r.data&&lista(r.data).includes(e)?nome:null; }catch(err){ return null; } }));
+  _adminEmAlgumApp=res.filter(Boolean); return _adminEmAlgumApp;
+}
+/* admin / comum pela lista do painel. Enquanto não houver nenhum admin no painel,
+   quem é admin em algum app entra como admin para fazer o primeiro cadastro. */
+let _bootstrapAdmin=false;
+function definirNivel(){
+  const e=emailAtual(), A=PAINEL.acesso.emailsAutorizados, C=PAINEL.acesso.emailsComuns;
+  if(A.includes(e)){ PAINEL.nivel='admin'; PAINEL.motivo='Administrador do painel.'; }
+  else if(C.includes(e)){ PAINEL.nivel='comum'; PAINEL.motivo='Usuário comum do painel.'; }
+  else if(!A.length && _bootstrapAdmin){ PAINEL.nivel='admin'; PAINEL.motivo='Painel ainda sem administradores: liberado porque você é administrador em um dos apps. Cadastre-se como administrador abaixo.'; }
+  else { PAINEL.nivel='bloqueado'; PAINEL.motivo='E-mail não cadastrado no painel.'; }
 }
 function applyAccess(){
   const ovL=document.getElementById('overlay-login'), ovN=document.getElementById('overlay-negado');
   if(!msAccount){ ovL.style.display=msalReady?'flex':'none'; ovN.style.display='none'; return; }
   ovL.style.display='none';
-  if(!acessoLiberado){ ovN.style.display='flex'; document.getElementById('overlay-email-info').textContent='Logado como: '+emailAtual(); return; }
+  if(PAINEL.nivel==='bloqueado'){ ovN.style.display='flex'; document.getElementById('overlay-email-info').textContent='Logado como: '+emailAtual(); return; }
   ovN.style.display='none';
+  document.body.classList.toggle('is-admin', PAINEL.nivel==='admin');
+  document.querySelectorAll('nav.tabs button[data-area]').forEach(b=>{ b.style.display=areaVisivel(b.dataset.area)?'':'none'; });
+  const ativa=document.querySelector('nav.tabs button.active');
+  if(ativa && (ativa.style.display==='none' || getComputedStyle(ativa).display==='none')) document.querySelector('nav.tabs button[data-tab="geral"]').click();
 }
 async function aposLogin(){
   updateLoginUI(); setSyncStatus('⏳ conferindo acesso…','saving');
-  await verificarAcesso(); applyAccess();
-  if(acessoLiberado){ await carregarTudo(true); iniciarAuto(); }
-  else setSyncStatus('🔒 sem acesso','warn');
+  await recarregarConfigPainel();
+  if(!PAINEL.acesso.emailsAutorizados.length) _bootstrapAdmin=(await adminEmAlgumApp()).length>0;
+  definirNivel(); applyAccess();
+  if(PAINEL.nivel==='bloqueado'){ setSyncStatus('🔒 sem acesso','warn'); return; }
+  if(!lsGet(LS_AUTO,'')) document.getElementById('f-auto').value=String(PAINEL.params.autoMin);
+  await carregarTudo(true); iniciarAuto();
 }
+
+/* ------------------------------ login ------------------------------ */
 async function initAuth(){
   try{
     await loadMsal(); const M=window.msal&&window.msal.PublicClientApplication; if(!M) throw new Error('MSAL');
@@ -802,13 +858,13 @@ async function initAuth(){
 }
 function updateLoginUI(){
   const lbl=document.getElementById('ms-login-label'), info=document.getElementById('ms-user-info');
-  if(msAccount){ lbl.textContent='✓ '+(msAccount.name||msAccount.username); info.textContent=msAccount.username; info.style.display='block'; }
+  if(msAccount){ lbl.textContent='✓ '+(msAccount.name||msAccount.username); info.textContent=msAccount.username+(PAINEL.nivel==='admin'?' · admin':PAINEL.nivel==='comum'?' · visualização':''); info.style.display='block'; }
   else { lbl.textContent='🔑 Entrar com Microsoft'; info.style.display='none'; }
 }
 document.getElementById('btn-ms-login').addEventListener('click', async()=>{
   if(!msalInstance){ toast('Login inicializando — tente de novo em instantes.'); return; }
   if(msAccount){
-    if(confirm('Sair de '+msAccount.username+'?')){ try{ await msalInstance.logoutPopup({account:msAccount}); }catch(e){} msAccount=null; acessoLiberado=false; Object.keys(FONTES).forEach(k=>{FONTES[k].dados=null; marcarFonte(k,'idle');}); updateLoginUI(); applyAccess(); renderTudo(); }
+    if(confirm('Sair de '+msAccount.username+'?')){ try{ await msalInstance.logoutPopup({account:msAccount}); }catch(e){} location.reload(); }
     return;
   }
   document.getElementById('ms-login-label').textContent='⏳ Abrindo login...';
@@ -819,36 +875,26 @@ document.getElementById('btn-ms-login').addEventListener('click', async()=>{
       if(!usandoReserva() && ehErroConsentimento(e)){ escopoAtual=SCOPES_RESERVA; lsSet(LS_ESCOPO,'reserva'); limparInteracaoTravada(); resp=await msalInstance.loginPopup({scopes:escopoAtual}); }
       else throw e;
     }
-    msAccount=resp.account; msalInstance.setActiveAccount(msAccount); await aposLogin();
+    msAccount=resp.account; msalInstance.setActiveAccount(msAccount); await aposLogin(); updateLoginUI();
   }catch(e){ limparInteracaoTravada(); updateLoginUI(); toast('Erro no login: '+(e.errorCode||e.message||'desconhecido')); }
 });
 
-/* --------------------------- abas, filtros, auto --------------------------- */
+/* --------------------------- abas, mês, auto, TV --------------------------- */
 document.getElementById('tabs').addEventListener('click', e=>{
   const btn=e.target.closest('button[data-tab]'); if(!btn) return;
   document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active')); btn.classList.add('active');
   document.querySelectorAll('section.pane').forEach(p=>p.classList.remove('active'));
   document.getElementById('pane-'+btn.dataset.tab).classList.add('active');
-  renderAba(btn.dataset.tab); // re-render a cada abertura de aba
+  document.getElementById('main').classList.toggle('largo', !!(ABA_FONTE[btn.dataset.tab] && EMBED[ABA_FONTE[btn.dataset.tab]]));
+  renderAba(btn.dataset.tab);
 });
-
-function montarFiltroUI(){
-  const sm=document.getElementById('f-modo'), im=document.getElementById('f-mes'), sa=document.getElementById('f-ano');
-  const y=new Date().getFullYear(); let anos=[]; for(let a=y+1;a>=y-5;a--) anos.push(String(a));
-  if(!anos.includes(FILTRO.ano)) anos.push(FILTRO.ano);
-  sa.innerHTML=anos.map(a=>`<option value="${a}">${a}</option>`).join('');
-  sm.value=FILTRO.modo; im.value=FILTRO.ym; sa.value=FILTRO.ano;
-  const vis=()=>{ im.style.display=FILTRO.modo==='mes'?'':'none'; sa.style.display=FILTRO.modo==='ano'?'':'none'; };
-  vis();
-  const mudou=()=>{ FILTRO.modo=sm.value; if(im.value) FILTRO.ym=im.value; FILTRO.ano=sa.value; if(FILTRO.modo==='mes') FILTRO.ano=FILTRO.ym.slice(0,4); salvarFiltro(); vis(); renderAba(); };
-  sm.addEventListener('change',mudou); im.addEventListener('change',mudou); sa.addEventListener('change',mudou);
-}
+(function(){ const im=document.getElementById('g-mes'); im.value=FILTRO.ym;
+  im.addEventListener('change',()=>{ if(!im.value) return; FILTRO.ym=im.value; FILTRO.ano=im.value.slice(0,4); renderGeral(); }); })();
 
 let _autoTimer=null;
 function iniciarAuto(){
   clearInterval(_autoTimer);
-  const min=+document.getElementById('f-auto').value;
-  if(!min) return;
+  const min=+document.getElementById('f-auto').value; if(!min) return;
   _autoTimer=setInterval(()=>{ if(!document.hidden) carregarTudo(true); }, min*60000);
 }
 document.getElementById('f-auto').value=lsGet(LS_AUTO,'10');
@@ -856,26 +902,171 @@ document.getElementById('f-auto').addEventListener('change', e=>{ lsSet(LS_AUTO,
 document.addEventListener('visibilitychange', ()=>{
   if(document.hidden) return;
   const min=+document.getElementById('f-auto').value;
-  if(min && msAccount && acessoLiberado && Date.now()-_ultimaCarga > min*60000) carregarTudo(true);
+  if(min && msAccount && Date.now()-_ultimaCarga > min*60000) carregarTudo(true);
 });
 document.getElementById('btn-atualizar').addEventListener('click', ()=>{ if(!msAccount){ toast('Entre com a conta Microsoft primeiro.'); return; } carregarTudo(false); });
 
-/* Modo TV: tela cheia e troca de aba sozinho */
 let _tvTimer=null;
-const ABAS_TV=['geral','comercial','faturamento','assistencia','obras','orcamentos'];
 document.getElementById('btn-tv').addEventListener('click', ()=>{
   const btn=document.getElementById('btn-tv');
   if(_tvTimer){ clearInterval(_tvTimer); _tvTimer=null; btn.classList.remove('on'); document.body.classList.remove('modo-tv'); try{ if(document.fullscreenElement) document.exitFullscreen(); }catch(e){} return; }
   btn.classList.add('on'); document.body.classList.add('modo-tv');
   try{ document.documentElement.requestFullscreen(); }catch(e){}
+  const seg=Math.max(10, n(PAINEL.params.tvSeg)||45);
   _tvTimer=setInterval(()=>{
-    const atual=ABAS_TV.indexOf(abaAtiva());
-    const prox=ABAS_TV[(atual+1)%ABAS_TV.length];
-    document.querySelector(`nav.tabs button[data-tab="${prox}"]`).click();
-    window.scrollTo(0,0);
-  }, 45000);
-  toast('Modo TV: troca de aba a cada 45 s. Clique em 📺 de novo para sair.');
+    const abas=['geral','comercial','faturamento','assistencia','obras','orcamentos'].filter(t=>t==='geral'||areaVisivel(ABA_FONTE[t]));
+    const prox=abas[(abas.indexOf(abaAtiva())+1)%abas.length];
+    document.querySelector(`nav.tabs button[data-tab="${prox}"]`).click(); window.scrollTo(0,0);
+  }, seg*1000);
+  toast(`Modo TV: troca de aba a cada ${seg} s. Clique em 📺 de novo para sair.`);
 });
+
+/* =====================================================================
+   TELAS ORIGINAIS EMBUTIDAS (somente visualização)
+   Cada área abre a PRÓPRIA tela do app (o index.html publicado no GitHub),
+   dentro de um quadro isolado:
+   - sandbox sem "allow-same-origin": o app não enxerga o login nem os dados
+     guardados no navegador pelos apps de verdade;
+   - CSP connect-src 'none': o app não consegue fazer NENHUMA chamada de rede,
+     então não tem como gravar no SharePoint nem na planilha;
+   - os dados lidos pelo painel entram por uma "memória falsa" (localStorage)
+     e o login Microsoft do app é desligado (ele abre em modo visualização);
+   - botões de cadastro/edição e a aba Parâmetros de cada app ficam ocultos.
+   Como a tela vem do próprio app, qualquer melhoria publicada no app aparece
+   aqui automaticamente.
+   ===================================================================== */
+const EMBED_CSP = [
+  "default-src 'none'",
+  "script-src 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com",
+  "style-src 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com",
+  "font-src https://fonts.gstatic.com data:",
+  "img-src data: blob: https:",
+  "media-src data: blob:",
+  "connect-src 'none'",
+  "frame-src 'none'",
+  "form-action 'none'",
+  "base-uri 'none'"
+].join('; ');
+
+const EMBED_CSS_COMUM = `#btn-ms-login,#ms-user-info,#sync-status,#btn-sync,#overlay-login,#overlay-negado,.somente-admin,
+nav.tabs button[data-tab="parametros"],#pane-parametros{display:none!important}`;
+
+/* configuração por app: chave da memória, como iniciar e como atualizar sem perder filtros */
+const EMBED = {
+  fat: {
+    storage: d=>({ 'maqcampo-faturamento-v1': JSON.stringify(d) }),
+    css: `nav.tabs button[data-tab="lancamento"],#pane-lancamento,#btn-reset,#btn-add-feriado,#btn-add-loja{display:none!important}`,
+    init: `nivelAcesso=function(){return 'comum'}; applyAccess(); renderAll();`,
+    refresh: `state=JSON.parse(localStorage.getItem('maqcampo-faturamento-v1')); renderAll();`,
+  },
+  ast: {
+    storage: d=>({ 'maqcampo-assistencia-tecnica-v1': JSON.stringify(d) }),
+    css: `#btn-add-os,[data-edit-os],#btn-salvar-os,#btn-excluir-os,#btn-reset{display:none!important}`,
+    init: `nivelAcesso=function(){return 'comum'}; applyAccess(); renderAll();`,
+    refresh: `state=withDefaults(JSON.parse(localStorage.getItem('maqcampo-assistencia-tecnica-v1'))); renderAll();`,
+  },
+  obr: {
+    storage: d=>({ 'maqcampo-mcpo-v3': JSON.stringify({ clientes:d.clientes, obras:d.obras, lancamentos:d.lancamentos, tecnicos:d.tecnicos, alocacoes:d.alocacoes, ultimaSync:new Date().toISOString() }) }),
+    extra: d=>({ listas:d.listasBrutas||null }),
+    css: `#btn-nova-obra,#btn-novo-cliente,#btn-novo-lancamento,#btn-novo-tecnico,#btn-importar-orcamento,#btn-atualizar-obras-orcamento,#btn-salvar-registro,#btn-excluir-registro,
+#btn-salvar-medicao,#btn-add-medicao,#btn-rem-medicao,#btn-pagar-montador-medicao,#btn-pagar-auxiliar-medicao,#btn-add-tecnico-equipe,#btn-forcar-alocacao,
+#btn-atualizar-periodo-equipe,#btn-migrar,#btn-aplicar-atualizar-obras,#btn-usar-orcamento{display:none!important}`,
+    init: `nivelAcesso=function(){return 'comum'}; if(window.__PAINEL.extra.listas){ listasConfig=Object.assign({},listasConfig,window.__PAINEL.extra.listas); } applyAccess(); renderAll();`,
+    refresh: `var c=JSON.parse(localStorage.getItem('maqcampo-mcpo-v3')); clientes=c.clientes||[]; obras=c.obras||[]; lancamentos=c.lancamentos||[]; tecnicos=c.tecnicos||[]; alocacoes=c.alocacoes||[];
+      if(window.__PAINEL.extra.listas){ listasConfig=Object.assign({},listasConfig,window.__PAINEL.extra.listas); } renderAll();`,
+  },
+  crm: {
+    storage: ()=>({}),
+    extra: d=>({ crm:d.bruto }),
+    css: `#xlsxDrop,.link-row,#pickFileLink,#btnCriarPastas,.nav-item[data-view="acessos"],#movBar,.edit-bar,.anexo-acoes,.anexo-btn,#anexoBtn,.anexo-x,
+#btnMarkLost,#btnMarkWon,#acNovo,.ac-novo,#nvSalvar,#edSalvar,.proto-badge{display:none!important}
+.campo-edit{pointer-events:none!important}`,
+    init: `aplicarWorkbook(workbookDoAppsScript(window.__PAINEL.extra.crm), 'planilha do Google (painel)');`,
+    /* atualiza os dados sem zerar os filtros que a pessoa escolheu */
+    refresh: `var r=processarPlanilha(workbookDoAppsScript(window.__PAINEL.extra.crm)); Object.keys(r.novo).forEach(function(k){ RECORDS[k]=r.novo[k]; });
+      FACETS.vendedores=r.facets.vendedores; FACETS.cidades=r.facets.cidades; FACETS.ufs=r.facets.ufs; FACETS.marcas=r.facets.marcas;
+      FONTE_DADOS='planilha do Google (painel) · '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); renderFilterSummaryBar(); renderCurrentView();`,
+  },
+};
+
+/* roda dentro do quadro, ANTES do código do app */
+function embedBoot(){
+  /* eslint-disable */
+  (function(){
+    var P=window.__PAINEL, mem={};
+    function fazStorage(obj){ return {
+      getItem:function(k){ return Object.prototype.hasOwnProperty.call(obj,k)?obj[k]:null; },
+      setItem:function(k,v){ obj[k]=String(v); }, removeItem:function(k){ delete obj[k]; },
+      clear:function(){ Object.keys(obj).forEach(function(k){ delete obj[k]; }); },
+      key:function(i){ return Object.keys(obj)[i]||null; }, get length(){ return Object.keys(obj).length; } }; }
+    Object.keys(P.storage||{}).forEach(function(k){ mem[k]=P.storage[k]; });
+    Object.defineProperty(window,'localStorage',{value:fazStorage(mem),configurable:true});
+    Object.defineProperty(window,'sessionStorage',{value:fazStorage({}),configurable:true});
+    /* login Microsoft do app desligado: ele entra em modo visualização local */
+    Object.defineProperty(window,'msal',{value:{PublicClientApplication:function(){ this.initialize=function(){ return Promise.reject(new Error('painel')); }; this.getAllAccounts=function(){ return []; }; }},writable:false,configurable:false});
+    window.alert=function(){}; window.confirm=function(){ return false; }; window.prompt=function(){ return null; };
+    document.addEventListener('dragstart',function(e){ e.preventDefault(); },true);
+    function rodar(code){ var s=document.createElement('script'); s.textContent='try{'+code+'}catch(e){console.error("[painel]",e);}'; (document.body||document.documentElement).appendChild(s); s.remove(); }
+    window.addEventListener('load',function(){ setTimeout(function(){ rodar(P.init); },80); });
+    window.addEventListener('message',function(ev){
+      if(ev.source!==window.parent) return; var d=ev.data||{}; if(d.tipo!=='atualizar') return;
+      Object.keys(d.storage||{}).forEach(function(k){ mem[k]=d.storage[k]; }); P.extra=d.extra||{}; rodar(P.refresh);
+    });
+  })();
+}
+
+const _htmlApps={};
+async function htmlDoApp(k){
+  if(_htmlApps[k]) return _htmlApps[k];
+  const r=await lerUrl(CAMINHOS[k].app+'index.html?v='+Date.now(), {cache:'no-store'});
+  if(!r.ok) throw new Error('não consegui abrir a tela do app ('+r.status+')');
+  _htmlApps[k]=await r.text(); return _htmlApps[k];
+}
+function jsonSeguro(o){ return JSON.stringify(o).replace(/</g,'\\u003c').replace(/[\u2028\u2029]/g,function(c){ return c==='\u2028'?'\\u2028':'\\u2029'; }); }
+function montarSrcdoc(k, html, dados){
+  const cfg=EMBED[k];
+  const payload={ storage:cfg.storage(dados), extra:cfg.extra?cfg.extra(dados):{}, init:cfg.init, refresh:cfg.refresh };
+  const injeta=`<meta http-equiv="Content-Security-Policy" content="${EMBED_CSP}">`+
+    `<script>window.__PAINEL=${jsonSeguro(payload)};(${embedBoot.toString()})();<\/script>`+
+    `<style>${EMBED_CSS_COMUM}\n${cfg.css||''}</style>`;
+  const m=html.match(/<head[^>]*>/i);
+  return m ? html.replace(m[0], m[0]+injeta) : injeta+html;
+}
+
+const _embedVersao={};   // assinatura dos dados já entregues a cada quadro
+function assinatura(k){ try{ return JSON.stringify(EMBED[k].storage(FONTES[k].dados))+'|'+JSON.stringify(EMBED[k].extra?EMBED[k].extra(FONTES[k].dados):''); }catch(e){ return String(Date.now()); } }
+
+async function abrirEmbed(k){
+  const wrap=document.getElementById('embed-'+k); if(!wrap) return;
+  if(!avisoFonte(k)){ wrap.style.display='none'; return; }
+  wrap.style.display='';
+  const ifr=wrap.querySelector('iframe');
+  if(ifr){ atualizarEmbed(k); return; }
+  wrap.innerHTML='<div class="vazio">Abrindo a tela do app…</div>';
+  try{
+    const html=await htmlDoApp(k);
+    const f=document.createElement('iframe');
+    f.setAttribute('sandbox','allow-scripts allow-popups allow-downloads');
+    f.setAttribute('referrerpolicy','no-referrer');
+    f.title=FONTES[k].nome;
+    _embedVersao[k]=assinatura(k);
+    f.srcdoc=montarSrcdoc(k, html, FONTES[k].dados);
+    wrap.innerHTML=''; wrap.appendChild(f);
+  }catch(e){
+    console.error(e);
+    wrap.innerHTML=`<div class="note erro" style="margin:12px;">Não foi possível abrir a tela do app: ${escapeHtml(e.message)}</div>`;
+  }
+}
+/* dados novos: entrega ao quadro sem recarregar (mantém aba e filtros escolhidos) */
+function atualizarEmbed(k){
+  const wrap=document.getElementById('embed-'+k); const ifr=wrap&&wrap.querySelector('iframe');
+  if(!ifr||!FONTES[k].dados) return;
+  const sig=assinatura(k); if(sig===_embedVersao[k]) return;
+  _embedVersao[k]=sig;
+  const cfg=EMBED[k];
+  try{ ifr.contentWindow.postMessage({tipo:'atualizar', storage:cfg.storage(FONTES[k].dados), extra:cfg.extra?cfg.extra(FONTES[k].dados):{}}, '*'); }catch(e){ console.error(e); }
+}
+function atualizarTodosEmbeds(){ Object.keys(EMBED).forEach(atualizarEmbed); }
 
 /* =====================================================================
    FATURAMENTO (app pecas) — mesmas regras de cálculo do app
@@ -953,80 +1144,12 @@ function moduloFat(state){
 RESUMO.fat = ()=>{
   const st=FONTES.fat.dados, M=moduloFat(st), c=M.calc();
   return { kpis:[
-    { l:'Faturado no mês', v:brl0(c.realM), s:MESES_LONGO[+c.r.slice(5,7)-1]+' · meta '+brl0(c.metaM) },
-    { l:'% da meta do mês', v:pct(c.pctM), cls:c.pctM!=null&&c.pctM<1?'':'pos', s:'falta '+brl0(c.faltaM) },
-    { l:'Realizado no período', v:brl0(c.realP), s:'meta '+brl0(c.metaP)+' · '+pct(c.pctP) },
-    { l:'Meta diária p/ fechar', v:brl0(c.metaDiaPeriodo), s:c.duRestP+' dia(s) útil(eis) restante(s)' },
+    { l:'Faturado no mês', v:brl0(c.realM), s:'meta '+brl0(c.metaM), bar:c.pctM },
+    { l:'% da meta do mês', v:pct(c.pctM), cls:c.pctM!=null&&c.pctM>=1?'pos':'', s:'falta '+brl0(c.faltaM) },
+    { l:'% da meta do período', v:pct(c.pctP), s:brl0(c.realP)+' de '+brl0(c.metaP) },
   ]};
 };
 
-RENDER.fat = ()=>{
-  const st=FONTES.fat.dados, M=moduloFat(st), c=M.calc(), cfg=st.config;
-  const D=M.D, ddmm=M.ddmm;
-  document.getElementById('fat-desc').textContent=`Período da meta: ${dataBr(cfg.inicio)} a ${dataBr(cfg.fim)} · ${cfg.lojas.length} loja(s).`;
-  document.getElementById('fat-mes-lbl').textContent=`${MESES_LONGO[D(c.r).getMonth()]}/${D(c.r).getFullYear()} · referência ${ddmm(D(c.r))}`;
-  document.getElementById('fat-strip-mes').innerHTML = c.foraMes
-    ? `<div class="note" style="grid-column:1/-1">O mês escolhido está fora do período da meta configurado no app (${dataBr(cfg.inicio)} a ${dataBr(cfg.fim)}).</div>`
-    : tbox('Meta do Mês', brl0(c.metaM)) +
-      tbox('Realizado', brl(c.realM), null, {barPct:c.pctM!=null?c.pctM*100:0}) +
-      tbox('Falta', brl(c.faltaM), null, {accent:true}) +
-      tbox('% Atingido', pct(c.pctM)) +
-      tbox('Meta Diária p/ Fechar', brl0(c.metaDiaNec), `${c.duRest} dia(s) útil(eis) restante(s)`, {sm:true});
-  document.getElementById('fat-per-lbl').textContent=`${dataBr(cfg.inicio)} a ${dataBr(cfg.fim)}`;
-  document.getElementById('fat-strip-per').innerHTML =
-    tbox('Meta Total', brl0(c.metaP)) +
-    tbox('Realizado', brl(c.realP), null, {barPct:c.pctP!=null?c.pctP*100:0}) +
-    tbox('Falta para a Meta', brl0(c.faltaP), null, {accent:true}) +
-    tbox('% Atingido', pct(c.pctP)) +
-    tbox('Meta Diária p/ Fechar o Período', brl0(c.metaDiaPeriodo), `${c.duRestP} dia(s) útil(eis) restante(s)`, {sm:true});
-  const orcRaw=c.orc-c.vq-c.pd, vqRaw=c.vq-M.somaLanc('ft');
-  document.getElementById('fat-strip-funil').innerHTML =
-    tbox('Contatos', int(c.ct)) +
-    tbox('Orçamento (total)', brl0(c.orc), `em aberto: ${brl0(Math.max(orcRaw,0))}${orcRaw<-0.005?' ⚠':''}`, {sm:true}) +
-    tbox('Venda Quente (total)', brl0(c.vq), `em aberto: ${brl0(Math.max(vqRaw,0))}${vqRaw<-0.005?' ⚠':''}`, {sm:true}) +
-    tbox('Orçamento Perdido', brl0(c.pd), `taxa de perda: ${pct(c.taxaPerda)}`, {sm:true, accent:true}) +
-    tbox('Conversão Orç.→Quente', pct(c.convOQ)) +
-    tbox('Conversão Quente→Fat.', pct(c.convQF)) +
-    tbox('Conversão Total', pct(c.convTotal), null, {accent:true}) +
-    tbox('Limite de perda', pct(n(cfg.limitePerda)), c.taxaPerda!=null&&c.taxaPerda>n(cfg.limitePerda)?'⚠ acima do limite':'dentro do limite', {sm:true});
-
-  /* gráficos (mesmos do app) */
-  const meses=M.mesesDoPeriodo(), weeks=M.buildWeeks();
-  grafico('c-fat-mensal',{ type:'bar', data:{ labels:meses.map(m=>m.label), datasets:[
-      { label:'Realizado', data:meses.map(m=>M.fatLiq(m.a,m.b)), backgroundColor:COR.verde, borderRadius:3 },
-      { label:'Meta', data:meses.map(m=>M.metaRange(m.a,m.b)), backgroundColor:COR.areia, borderRadius:3 } ]},
-    options:{ plugins:{ tooltip:tipBrl, legend:{position:'bottom'} }, scales:{ y:eixoBrl, x:semGrade } } });
-  let aR=0,aM=0; const accR=[],accM=[];
-  const ate=c.r;
-  weeks.forEach(w=>{ aR+=M.fatLiq(w.a,w.b); aM+=M.metaRange(w.a,w.b); accR.push(w.a<=ate?aR:null); accM.push(aM); });
-  grafico('c-fat-acum',{ type:'line', data:{ labels:weeks.map(w=>'S'+w.num), datasets:[
-      { label:'Realizado acum.', data:accR, borderColor:COR.verde, backgroundColor:COR.verde, tension:.25, pointRadius:0, borderWidth:2.2, spanGaps:false },
-      { label:'Meta acum.', data:accM, borderColor:COR.ferrugem, borderDash:[5,4], pointRadius:0, borderWidth:2, tension:.25 } ]},
-    options:{ interaction:{mode:'index',intersect:false}, plugins:{ tooltip:tipBrl, legend:{position:'bottom'} }, scales:{ y:eixoBrl, x:semGrade } } });
-  const lojas=cfg.lojas.map(l=>({nome:l.nome, v:M.fatLiq(null,null,l.nome)})).sort((a,b)=>b.v-a.v);
-  barrasH('c-fat-lojas', lojas.map(x=>x.nome), [{nome:'Faturado', valores:lojas.map(x=>x.v), cor:COR.verde}]);
-  const conv=cfg.lojas.map(l=>{ const or=M.somaLanc('or',null,null,l.nome); return {nome:l.nome, v:or>0?M.fatLiq(null,null,l.nome)/or:0}; }).sort((a,b)=>b.v-a.v);
-  barrasH('c-fat-conv', conv.map(x=>x.nome), [{nome:'Conversão', valores:conv.map(x=>x.v), cor:COR.ouro}], {pct:true, max:Math.max(1,...conv.map(x=>x.v))});
-  const perda=meses.map(m=>{ const or=M.somaLanc('or',m.a,m.b); return or>0?M.somaLanc('pd',m.a,m.b)/or:0; });
-  grafico('c-fat-perda',{ type:'line', data:{ labels:meses.map(m=>m.label), datasets:[
-      { label:'Taxa de perda', data:perda, borderColor:COR.erro, backgroundColor:COR.erro, tension:.25, borderWidth:2.2 },
-      { label:'Limite', data:meses.map(()=>n(cfg.limitePerda)), borderColor:COR.cinza, borderDash:[4,4], pointRadius:0, borderWidth:1.5 } ]},
-    options:{ plugins:{ tooltip:tipPct, legend:{position:'bottom'} }, scales:{ y:Object.assign({min:0},eixoPct), x:semGrade } } });
-
-  /* tabela por loja no mês de referência (como "Lojas — Mês Atual" do app) */
-  document.getElementById('fat-lojas-side').textContent = c.foraMes?'fora do período':`${dataBr(c.mA)} a ${dataBr(c.mB)}`;
-  if(c.foraMes){ document.getElementById('fat-tbl-lojas').innerHTML='<div class="vazio">Mês fora do período da meta.</div>'; return; }
-  const f=M.feriadoSet(); let duMes=0; M.eachDate(c.mA,c.mB,(x)=>{ if(M.isDiaUtil(x,f)) duMes++; });
-  const metaLoja=M.metaDiaria()*duMes/(cfg.lojas.length||1);
-  const linhas=cfg.lojas.map(l=>({ nome:l.nome, regiao:l.regiao, ct:M.somaLanc('ct',c.mA,c.mB,l.nome), or:M.somaLanc('or',c.mA,c.mB,l.nome),
-    vq:M.somaLanc('vq',c.mA,c.mB,l.nome), pd:M.somaLanc('pd',c.mA,c.mB,l.nome), ft:M.fatLiq(c.mA,c.mB,l.nome) })).sort((a,b)=>b.ft-a.ft);
-  const tot=linhas.reduce((s,x)=>({ct:s.ct+x.ct,or:s.or+x.or,vq:s.vq+x.vq,pd:s.pd+x.pd,ft:s.ft+x.ft}),{ct:0,or:0,vq:0,pd:0,ft:0});
-  document.getElementById('fat-tbl-lojas').innerHTML = tabela(
-    [{t:'#'},{t:'Loja'},{t:'Região'},{t:'Contatos',r:1},{t:'Orçamento',r:1},{t:'Venda quente',r:1},{t:'Perdido',r:1},{t:'Faturado',r:1},{t:'Meta da loja',r:1},{t:'% meta',r:1},{t:'Conversão',r:1}],
-    linhas.map((x,i)=>[ td(i+1), td(escapeHtml(x.nome)), td(`<span class="reg ${x.regiao==='R2'?'R2':''}">${escapeHtml(x.regiao||'—')}</span>`), tdn(int(x.ct)), tdn(brl0(x.or)), tdn(brl0(x.vq)), tdn(brl0(x.pd)), tdn(brl(x.ft)),
-      tdn(brl0(metaLoja)), tdn(pct(metaLoja>0?x.ft/metaLoja:null)), tdn(pct(x.or>0?x.ft/x.or:null)) ]),
-    [ td(''), td('Total'), td(''), tdn(int(tot.ct)), tdn(brl0(tot.or)), tdn(brl0(tot.vq)), tdn(brl0(tot.pd)), tdn(brl(tot.ft)), tdn(brl0(metaLoja*linhas.length)), tdn(pct(metaLoja>0?tot.ft/(metaLoja*linhas.length):null)), tdn(pct(tot.or>0?tot.ft/tot.or:null)) ]);
-};
 
 /* =====================================================================
    ASSISTÊNCIA TÉCNICA (app assistencia) — mesmas regras do app
@@ -1127,71 +1250,14 @@ function astFiltroPeriodo(){ return r=>passaIso(r.dataAbertura); }
 RESUMO.ast = ()=>{
   const st=FONTES.ast.dados, M=moduloAst(st), ref=refDatePainel();
   const mm=M.metaMesCalc(null, ref), ta=M.tempoAbertoResumo(), s=M.statsFor(null);
+  const p=mm.meta>0?mm.real/mm.meta:null;
   return { kpis:[
-    { l:'Faturado no mês', v:brl0(mm.real), s:mm.foraDoPeriodo?'fora do período da meta':'meta '+brl0(mm.meta)+' · '+pct(mm.meta>0?mm.real/mm.meta:null) },
-    { l:'Pendente de faturar', v:brl0(s.valorPendente), cls:s.valorPendente>0?'neg':'', s:'todas as OS' },
+    { l:'Faturado no mês', v:brl0(mm.real), s:mm.foraDoPeriodo?'fora do período da meta':'meta '+brl0(mm.meta)+' · '+pct(p), bar:p },
+    { l:'Pendente de faturar', v:brl0(s.valorPendente), cls:s.valorPendente>0?'neg':'' },
     { l:'OS em aberto', v:int(ta.qtd), s:ta.maior?'mais antiga: '+int(ta.maior.dias)+' dias':'' },
-    { l:'Média em aberto', v:ta.qtd?num1(ta.media)+' dias':'—', s:'tempo corrido' },
   ]};
 };
 
-RENDER.ast = ()=>{
-  const st=FONTES.ast.dados, cfg=st.config, M=moduloAst(st), ref=refDatePainel();
-  const filtro=FILTRO.modo==='tudo'?null:astFiltroPeriodo();
-  const s=M.statsFor(filtro);
-  document.getElementById('ast-kpi-lbl').textContent='abertas em '+descricaoFiltro();
-  document.getElementById('ast-strip-kpi').innerHTML =
-    tbox('Total de OS', int(s.totalOS)) + tbox('Horas Totais', num1(s.horas)) + tbox('Valor Total', brl(s.valorTotal)) +
-    tbox('Valor Faturado', brl(s.valorFaturado), null, {barPct:s.valorTotal>0?s.valorFaturado/s.valorTotal*100:0}) +
-    tbox('Valor Pendente', brl(s.valorPendente), null, {accent:true});
-  const mm=M.metaMesCalc(null, ref);
-  const [y,m]=ref.split('-');
-  document.getElementById('ast-meta-lbl').textContent=MESES_LONGO[+m-1]+'/'+y+' · período da meta '+dataBr(cfg.periodoInicio)+' a '+dataBr(cfg.periodoFim)+' (meta redistribuída pelos dias úteis restantes, como no app)';
-  const p=mm.meta>0?mm.real/mm.meta:null;
-  document.getElementById('ast-strip-meta').innerHTML = mm.foraDoPeriodo
-    ? tbox('Meta do Mês', brl0(0), 'fora do Período da Meta') + tbox('Realizado no Mês', brl(mm.real)) + tbox('% Atingido', '—') + tbox('Falta', brl0(0), null, {accent:true})
-    : tbox('Meta do Mês', brl0(mm.meta)) + tbox('Realizado no Mês', brl(mm.real), null, {barPct:p!=null?p*100:0}) + tbox('% Atingido', pct(p)) + tbox('Falta para a Meta', brl0(mm.meta-mm.real), null, {accent:true});
-  const ta=M.tempoAbertoResumo();
-  const pend=Object.values(st.registros).filter(r=>M.computeSituacao(r)===cfg.situacoes.pendente);
-  document.getElementById('ast-strip-aberto').innerHTML =
-    tbox('OS em Aberto', int(ta.qtd)) +
-    tbox('Maior Tempo Aberta', ta.maior?int(ta.maior.dias)+' dias':'—', ta.maior?`OS nº ${escapeHtml(ta.maior.r.numeroOS||'—')} • ${escapeHtml(ta.maior.r.base||'sem base')}`:null, {accent:true}) +
-    tbox('Média de Tempo Aberta', ta.qtd?num1(ta.media)+' dias':'—') +
-    tbox('Pendente de Faturar', brl0(pend.reduce((a,r)=>a+n(r.valor),0)), int(pend.length)+' OS (todas as datas)', {sm:true});
-
-  /* meta × realizado por região */
-  const regs=cfg.regioes.map(r=>({r, ...M.metaMesCalc(r, ref)}));
-  grafico('c-ast-regiao',{ type:'bar', data:{ labels:regs.map(x=>x.r), datasets:[
-      { label:'Realizado', data:regs.map(x=>x.real), backgroundColor:COR.verde, borderRadius:3 },
-      { label:'Meta do mês', data:regs.map(x=>x.meta), backgroundColor:COR.areia, borderRadius:3 } ]},
-    options:{ plugins:{ tooltip:tipBrl, legend:{position:'bottom'} }, scales:{ y:eixoBrl, x:semGrade } } });
-  const sits=[cfg.situacoes.faturado, cfg.situacoes.pendente, cfg.situacoes.naoAplica];
-  grafico('c-ast-situacao',{ type:'doughnut', data:{ labels:sits, datasets:[{ data:sits.map(k=>s.porSituacao[k]||0), backgroundColor:[COR.verde, COR.ferrugem, COR.cinza], borderWidth:2 }] },
-    options:{ cutout:'58%', plugins:{ legend:{position:'right'}, tooltip:{ callbacks:{ label:c=>' '+c.label+': '+brl(c.raw) } } } } });
-  /* OS em aberto por base (todas as datas) */
-  const ab=M.osAbertasComTempo(), porBase={};
-  ab.forEach(x=>{ const b=x.r.base||'(sem base)'; porBase[b]=(porBase[b]||0)+1; });
-  const bases=Object.entries(porBase).sort((a,b)=>b[1]-a[1]);
-  if(bases.length){ ajustarAltura('c-ast-base', bases.length, 28);
-    grafico('c-ast-base',{ type:'bar', data:{ labels:bases.map(b=>b[0]), datasets:[{ label:'OS em aberto', data:bases.map(b=>b[1]), backgroundColor:COR.ferrugem, borderRadius:3, maxBarThickness:22 }] },
-      options:{ indexAxis:'y', plugins:{ legend:{display:false} }, scales:{ x:{ ticks:{ precision:0 } }, y:semGrade } } }); }
-  else semDados('c-ast-base','Nenhuma OS em aberto');
-  const tipos=cfg.tiposOS.concat(Object.keys(s.porTipo).filter(k=>!cfg.tiposOS.includes(k)&&k!=='undefined'));
-  barrasH('c-ast-tipo', tipos, [{nome:'Valor', valores:tipos.map(k=>s.porTipo[k]||0), cor:COR.verde}]);
-  const sts=cfg.statusOS.concat(Object.keys(s.porStatus).filter(k=>!cfg.statusOS.includes(k)&&k!=='undefined'));
-  ajustarAltura('c-ast-status', sts.length, 28);
-  grafico('c-ast-status',{ type:'bar', data:{ labels:sts, datasets:[{ label:'OS', data:sts.map(k=>s.porStatus[k]||0), backgroundColor:sts.map(k=>cfg.statusFechados.includes(k)?COR.verde:COR.ouro), borderRadius:3, maxBarThickness:22 }] },
-    options:{ indexAxis:'y', plugins:{ legend:{display:false} }, scales:{ x:{ ticks:{ precision:0 } }, y:semGrade } } });
-  const tecs=Object.entries(s.porTecnico).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]);
-  if(tecs.length){ ajustarAltura('c-ast-tec', tecs.length, 26);
-    grafico('c-ast-tec',{ type:'bar', data:{ labels:tecs.map(t=>t[0]), datasets:[{ label:'Horas', data:tecs.map(t=>t[1]), backgroundColor:COR.azul, borderRadius:3, maxBarThickness:20 }] },
-      options:{ indexAxis:'y', plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:c=>' '+num1(c.raw)+' h' } } }, scales:{ y:Object.assign({ticks:{autoSkip:false}},semGrade) } } }); }
-  else semDados('c-ast-tec','Sem horas no período');
-  const top=ab.slice().sort((a,b)=>b.dias-a.dias).slice(0,20);
-  document.getElementById('ast-tbl-abertas').innerHTML = tabela(
-    [{t:'Nº OS'},{t:'Cliente'},{t:'Base'},{t:'Status'},{t:'Abertura'},{t:'Dias',r:1},{t:'Valor',r:1}],
-    top.map(x=>[ td(escapeHtml(x.r.numeroOS||'—')), td(escapeHtml(x.r.cliente||'—')), td(escapeHtml(x.r.base||'—')), td(escapeHtml(x.r.status||'—')), td(dataBr(x.r.dataAbertura)), tdn(int(x.dias), x.dias>30), tdn(brl(n(x.r.valor))) ]));
-};
 
 /* =====================================================================
    OBRAS DE MONTAGEM (app ACPTmontagem) — mesmas regras do app
@@ -1199,12 +1265,13 @@ RENDER.ast = ()=>{
    ===================================================================== */
 CARREGADORES.obr = async ()=>{
   const p=CAMINHOS.obr;
-  const [c,o,l,a,ls]=await Promise.all([
+  const [c,o,l,a,ls,t]=await Promise.all([
     lerJsonSP(p.pasta,p.clientes), lerJsonSP(p.pasta,p.obras), lerJsonSP(p.pasta,p.lancamentos),
-    lerJsonSP(p.pasta,p.alocacoes).catch(()=>({data:null})), lerJsonSP(p.pasta,p.listas).catch(()=>({data:null})) ]);
+    lerJsonSP(p.pasta,p.alocacoes).catch(()=>({data:null})), lerJsonSP(p.pasta,p.listas).catch(()=>({data:null})),
+    lerJsonSP(p.pasta,p.tecnicos).catch(()=>({data:null})) ]);
   const itens=r=>(r&&r.data&&Array.isArray(r.data.itens))?r.data.itens:[];
   if(o.missing && l.missing) throw new Error('arquivos de Obras não encontrados');
-  return { clientes:itens(c), obras:itens(o), lancamentos:itens(l), alocacoes:itens(a),
+  return { clientes:itens(c), obras:itens(o), lancamentos:itens(l), alocacoes:itens(a), tecnicos:itens(t), listasBrutas:(ls&&ls.data)||null,
            listas:Object.assign({status:[],regionais:[],categorias:[],categoriasSemCusto:[]}, (ls&&ls.data)||{}) };
 };
 
@@ -1277,73 +1344,12 @@ function obrTotais(M){
 RESUMO.obr = ()=>{
   const M=moduloObr(FONTES.obr.dados), t=obrTotais(M);
   return { kpis:[
-    { l:'Resultado', v:brl0(t.resultado), cls:t.resultado<0?'neg':'pos', s:'negociado − custo · '+descricaoFiltro() },
-    { l:'Negociado', v:brl0(t.negociado), s:'custo '+brl0(t.custo) },
-    { l:'Em andamento', v:int(t.cont['Em andamento']+t.cont['Andamento Atrasada']), s:int(t.cont['Andamento Atrasada'])+' atrasada(s)' },
-    { l:'Pendentes de início', v:int(t.cont['Pendente']), s:int(t.cont['Concluída'])+' concluída(s)' },
+    { l:'Resultado do mês', v:brl0(t.resultado), cls:t.resultado<0?'neg':'pos', s:'negociado − custo' },
+    { l:'Em andamento', v:int(t.cont['Em andamento']+t.cont['Andamento Atrasada']), s:int(t.cont['Andamento Atrasada'])+' atrasada(s)', cls:t.cont['Andamento Atrasada']>0?'neg':'' },
+    { l:'Aguardando início', v:int(t.cont['Pendente']) },
   ]};
 };
 
-RENDER.obr = ()=>{
-  const dados=FONTES.obr.dados, M=moduloObr(dados), t=obrTotais(M);
-  document.getElementById('obr-strip').innerHTML =
-    tbox('Custo', brl(t.custo)) + tbox('Negociado', brl(t.negociado)) + tbox('Recebido', brl(t.recebido)) +
-    tbox(t.resultado<0?'Resultado ⚠':'Resultado', brl(t.resultado), 'Negociado − Custo · '+descricaoFiltro(), {accent:true});
-  document.getElementById('obr-strip-status').innerHTML = STATUS_OBR.map(s=>tbox(s, int(t.cont[s]||0), 'situação atual', {claro:true, accent:false})).join('');
-
-  /* balanço por tipo */
-  const baseC=t.base.filter(l=>!(M.tipoDe(l)==='SAIDA'&&!M.categoriaComponeCusto(l.categoria)));
-  const porTipo={}; baseC.forEach(l=>{ const tp=M.tipoDe(l)||'(sem tipo)'; porTipo[tp]=(porTipo[tp]||0)+M.valorTotalLancamento(l); });
-  const tipos=Object.keys(porTipo);
-  if(tipos.length) grafico('c-obr-balanco',{ type:'bar', data:{ labels:tipos, datasets:[{ label:'Valor', data:tipos.map(k=>porTipo[k]), backgroundColor:tipos.map(k=>CORES_TIPO_OBR[k]||COR.cinza), borderRadius:3, maxBarThickness:60 }] },
-    options:{ plugins:{ legend:{display:false}, tooltip:tipBrl }, scales:{ y:eixoBrl, x:semGrade } } });
-  else semDados('c-obr-balanco');
-
-  /* resultado por regional e por cliente (negociado das obras − custos) */
-  const porReg={}, porCli={};
-  t.obs.forEach(o=>{ const c=M.clientePorId(o.clienteId); const reg=(c&&c.regional)||'(sem regional)', nome=c?c.nome:'(sem cliente)';
-    porReg[reg]=(porReg[reg]||0)+n(o.valorNegociado); porCli[nome]=(porCli[nome]||0)+n(o.valorNegociado); });
-  t.base.forEach(l=>{ if(M.tipoDe(l)!=='SAIDA'||!M.categoriaComponeCusto(l.categoria)) return;
-    const reg=M.regionalDoLancamento(l)||'(sem regional)', cli=M.nomeClienteDoLancamento(l), v=M.valorTotalLancamento(l);
-    porReg[reg]=(porReg[reg]||0)-v; porCli[cli]=(porCli[cli]||0)-v; });
-  const er=Object.entries(porReg).sort((a,b)=>b[1]-a[1]);
-  if(er.length) grafico('c-obr-regional',{ type:'bar', data:{ labels:er.map(e=>e[0]), datasets:[{ label:'Resultado', data:er.map(e=>e[1]), backgroundColor:er.map(e=>e[1]<0?COR.erro:COR.verde), borderRadius:3, maxBarThickness:60 }] },
-    options:{ plugins:{ legend:{display:false}, tooltip:tipBrl }, scales:{ y:eixoBrl, x:semGrade } } });
-  else semDados('c-obr-regional');
-  const ec=Object.entries(porCli).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])).slice(0,15).sort((a,b)=>b[1]-a[1]);
-  if(ec.length){ ajustarAltura('c-obr-cli', ec.length, 28);
-    grafico('c-obr-cli',{ type:'bar', data:{ labels:ec.map(e=>e[0]), datasets:[{ label:'Resultado', data:ec.map(e=>e[1]), backgroundColor:ec.map(e=>e[1]<0?COR.erro:COR.verde), borderRadius:3, maxBarThickness:22 }] },
-      options:{ indexAxis:'y', plugins:{ legend:{display:false}, tooltip:tipBrl }, scales:{ x:eixoBrl, y:Object.assign({ticks:{autoSkip:false}},semGrade) } } }); }
-  else semDados('c-obr-cli');
-  const porCat={};
-  t.base.filter(l=>M.tipoDe(l)==='SAIDA'&&M.categoriaComponeCusto(l.categoria)).forEach(l=>{ const c=l.categoria||'(sem categoria)'; porCat[c]=(porCat[c]||0)+M.valorTotalLancamento(l); });
-  const cats=Object.entries(porCat).sort((a,b)=>b[1]-a[1]);
-  if(cats.length) barrasH('c-obr-cat', cats.map(c=>c[0]), [{nome:'Custo', valores:cats.map(c=>c[1]), cor:COR.ferrugem}]);
-  else semDados('c-obr-cat');
-
-  /* tabela por obra */
-  const linhas=t.obs.map(o=>{
-    const lancs=t.base.filter(l=>l.obraId===o.id), custo=M.somaPorTipo('SAIDA',lancs), receb=M.somaPorTipo('ENTRADA',lancs), neg=n(o.valorNegociado), c=M.clientePorId(o.clienteId);
-    const mx=o.margemOrcada?M.margemExecutadaObra(o,lancs):null;
-    return { nome:(c?c.nome:'?')+' — '+(o.nome||''), reg:c&&c.regional||'', status:M.statusEfetivo(o), atraso:M.textoAtraso(o), dAtr:M.diasAtraso(o), custo, receb, neg, res:neg-custo,
-             mo:o.margemOrcada?n(o.margemOrcada.margemPct):null, mx:mx?mx.margemPct:null };
-  }).sort((a,b)=>Math.abs(b.res)-Math.abs(a.res));
-  document.getElementById('obr-tbl-side').textContent=int(linhas.length)+' obra(s) negociada(s) em '+descricaoFiltro();
-  const fmtM=v=>v==null?'—':num1(v)+'%';
-  document.getElementById('obr-tbl').innerHTML = tabela(
-    [{t:'Obra'},{t:'Regional'},{t:'Status'},{t:'Prazo'},{t:'Custo',r:1},{t:'Recebido',r:1},{t:'Negociado',r:1},{t:'Resultado',r:1},{t:'Margem orç.',r:1},{t:'Margem exec.',r:1}],
-    linhas.map(x=>[ td(escapeHtml(x.nome)), td(escapeHtml(x.reg||'—')), td(escapeHtml(x.status)), td(escapeHtml(x.atraso), x.dAtr>0?'neg':''), tdn(brl(x.custo)), tdn(brl(x.receb)), tdn(brl(x.neg)), tdn(brl(x.res), x.res<0), tdn(fmtM(x.mo)), tdn(fmtM(x.mx), x.mx!=null&&x.mo!=null&&x.mx<x.mo) ]),
-    linhas.length?[ td('Total'), td(''), td(''), td(''), tdn(brl(linhas.reduce((a,x)=>a+x.custo,0))), tdn(brl(linhas.reduce((a,x)=>a+x.receb,0))), tdn(brl(linhas.reduce((a,x)=>a+x.neg,0))), tdn(brl(linhas.reduce((a,x)=>a+x.res,0))), td(''), td('') ]:null);
-
-  /* atrasadas e sem técnico hoje (situação atual, independe do período) */
-  const todas=dados.obras;
-  const atr=todas.filter(o=>M.statusEfetivo(o)==='Andamento Atrasada').map(o=>({o, d:M.diasAtraso(o), c:M.clientePorId(o.clienteId)})).sort((a,b)=>(b.d||0)-(a.d||0));
-  document.getElementById('obr-atrasadas').innerHTML = atr.length ? tabela([{t:'Obra'},{t:'Regional'},{t:'Início'},{t:'Atraso',r:1}],
-    atr.map(x=>[ td(escapeHtml((x.c?x.c.nome:'?')+' — '+(x.o.nome||''))), td(escapeHtml(x.c&&x.c.regional||'—')), td(dataBr(x.o.dataInicio)), tdn(int(x.d)+' dia(s)', true) ])) : '<div class="vazio">Nenhuma obra atrasada. ✓</div>';
-  const semTec=todas.filter(o=>{ const s=M.statusEfetivo(o); return (s==='Em andamento'||s==='Andamento Atrasada') && M.tecnicosAlocadosNaObraEmData(o.id, M.hoje0).length===0; });
-  document.getElementById('obr-semtec').innerHTML = semTec.length ? tabela([{t:'Obra'},{t:'Regional'},{t:'Status'}],
-    semTec.map(o=>{ const c=M.clientePorId(o.clienteId); return [ td(escapeHtml((c?c.nome:'?')+' — '+(o.nome||''))), td(escapeHtml(c&&c.regional||'—')), td(escapeHtml(M.statusEfetivo(o))) ]; })) : '<div class="vazio">Todas as obras em andamento têm técnico hoje. ✓</div>';
-};
 
 /* =====================================================================
    ORÇAMENTOS (app orc_mcpo) — um arquivo historico_<email>.json por vendedor
@@ -1366,37 +1372,44 @@ function orcLinhas(){
       pivos:n(info.numPivos), hectares:n(info.hectares), valor:n(r.valorFinal), margem:fin.margem!=null&&fin.margem!==''?n(fin.margem):null, desconto:n(fin.desconto) };
   });
 }
-function orcResumoPeriodo(){
-  const todas=orcLinhas(), per=todas.filter(x=>passaIso(x.iso));
+/* filtro próprio da aba Orçamentos */
+const ORC_F=(function(){ const d=new Date(); return {modo:'ano', ym:d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'), ano:String(d.getFullYear()), busca:''}; })();
+function orcPassa(iso, f){
+  if(f.modo==='tudo') return true; if(!iso) return false;
+  return f.modo==='ano' ? iso.slice(0,4)===f.ano : iso.slice(0,7)===f.ym;
+}
+function orcResumo(f){
+  const todas=orcLinhas(), q=(f.busca||'').toLowerCase().trim();
+  const per=todas.filter(x=>orcPassa(x.iso,f) && (!q || (x.cliente+' '+x.obra+' '+x.vendedor).toLowerCase().includes(q)));
   const valor=per.reduce((a,x)=>a+x.valor,0), comM=per.filter(x=>x.margem!=null&&x.valor>0);
-  const margemMedia=comM.length? comM.reduce((a,x)=>a+x.margem*x.valor,0)/comM.reduce((a,x)=>a+x.valor,0) : null; // média ponderada pelo valor
+  const margemMedia=comM.length? comM.reduce((a,x)=>a+x.margem*x.valor,0)/comM.reduce((a,x)=>a+x.valor,0) : null;
   return { todas, per, valor, qtd:per.length, ticket:per.length?valor/per.length:0, pivos:per.reduce((a,x)=>a+x.pivos,0), margemMedia };
 }
+function orcDescricao(f){ if(f.modo==='tudo') return 'todo o histórico'; if(f.modo==='ano') return 'ano de '+f.ano; const [y,m]=f.ym.split('-'); return MESES_LONGO[+m-1]+'/'+y; }
 
 RESUMO.orc = ()=>{
-  const r=orcResumoPeriodo();
+  const r=orcResumo({modo:'mes', ym:FILTRO.ym, busca:''});
   return { kpis:[
-    { l:'Orçamentos', v:int(r.qtd), s:descricaoFiltro() },
-    { l:'Valor orçado', v:brl0(r.valor), s:'ticket médio '+brl0(r.ticket) },
-    { l:'Pivôs orçados', v:int(r.pivos) },
-    { l:'Margem nominal média', v:r.margemMedia==null?'—':num1(r.margemMedia)+'%', s:'ponderada pelo valor' },
+    { l:'Orçamentos no mês', v:int(r.qtd), s:int(r.pivos)+' pivô(s)' },
+    { l:'Valor orçado', v:brl0(r.valor) },
+    { l:'Ticket médio', v:brl0(r.ticket) },
   ]};
 };
 
 RENDER.orc = ()=>{
-  const r=orcResumoPeriodo();
+  const r=orcResumo(ORC_F);
   document.getElementById('orc-strip').innerHTML =
-    tbox('Orçamentos', int(r.qtd), descricaoFiltro()) + tbox('Valor orçado', brl(r.valor)) + tbox('Ticket médio', brl0(r.ticket)) +
+    tbox('Orçamentos', int(r.qtd), orcDescricao(ORC_F)) + tbox('Valor orçado', brl(r.valor)) + tbox('Ticket médio', brl0(r.ticket)) +
     tbox('Pivôs', int(r.pivos)) + tbox('Margem nominal média', r.margemMedia==null?'—':num1(r.margemMedia)+'%', 'ponderada pelo valor da proposta', {accent:true});
 
   /* série mensal: no modo "mês" mostra os 12 meses até o mês escolhido, para dar contexto */
   const porMes={}; r.todas.forEach(x=>{ if(!x.ym) return; (porMes[x.ym]=porMes[x.ym]||{v:0,q:0}); porMes[x.ym].v+=x.valor; porMes[x.ym].q++; });
   let meses;
-  if(FILTRO.modo==='ano') meses=Array.from({length:12},(_,i)=>FILTRO.ano+'-'+String(i+1).padStart(2,'0'));
-  else if(FILTRO.modo==='mes'){ const [y,m]=FILTRO.ym.split('-').map(Number); meses=[]; for(let i=11;i>=0;i--){ const d=new Date(y,m-1-i,1); meses.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')); } }
+  if(ORC_F.modo==='ano') meses=Array.from({length:12},(_,i)=>ORC_F.ano+'-'+String(i+1).padStart(2,'0'));
+  else if(ORC_F.modo==='mes'){ const [y,m]=ORC_F.ym.split('-').map(Number); meses=[]; for(let i=11;i>=0;i--){ const d=new Date(y,m-1-i,1); meses.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')); } }
   else meses=Object.keys(porMes).sort();
   if(meses.length) grafico('c-orc-mes',{ data:{ labels:meses.map(rotuloYm), datasets:[
-      { type:'bar', label:'Valor orçado', data:meses.map(k=>(porMes[k]||{}).v||0), backgroundColor:meses.map(k=>FILTRO.modo==='mes'&&k===FILTRO.ym?COR.ferrugem:COR.verde), borderRadius:3, yAxisID:'y' },
+      { type:'bar', label:'Valor orçado', data:meses.map(k=>(porMes[k]||{}).v||0), backgroundColor:meses.map(k=>ORC_F.modo==='mes'&&k===ORC_F.ym?COR.ferrugem:COR.verde), borderRadius:3, yAxisID:'y' },
       { type:'line', label:'Quantidade', data:meses.map(k=>(porMes[k]||{}).q||0), borderColor:COR.ouro, backgroundColor:COR.ouro, tension:.25, yAxisID:'q' } ]},
     options:{ interaction:{mode:'index',intersect:false}, plugins:{ legend:{position:'bottom'}, tooltip:{ callbacks:{ label:c=>c.dataset.yAxisID==='q'?' Quantidade: '+c.raw:' Valor: '+brl(c.raw) } } },
       scales:{ y:eixoBrl, q:{ position:'right', grid:{display:false}, ticks:{precision:0} }, x:semGrade } } });
@@ -1413,20 +1426,30 @@ RENDER.orc = ()=>{
     lista.length?[ td('Total'), td(''), td(''), td(''), tdn(int(r.pivos)), tdn(brl(r.valor)), td('') ]:null);
 };
 
+/* controles da aba */
+(function(){
+  const sm=document.getElementById('o-modo'), im=document.getElementById('o-mes'), sa=document.getElementById('o-ano'), sb=document.getElementById('o-busca');
+  const y=new Date().getFullYear(); sa.innerHTML=Array.from({length:7},(_,i)=>String(y+1-i)).map(a=>`<option>${a}</option>`).join('');
+  sm.value=ORC_F.modo; im.value=ORC_F.ym; sa.value=ORC_F.ano;
+  const vis=()=>{ im.style.display=ORC_F.modo==='mes'?'':'none'; sa.style.display=ORC_F.modo==='ano'?'':'none'; }; vis();
+  const mudou=()=>{ ORC_F.modo=sm.value; if(im.value) ORC_F.ym=im.value; ORC_F.ano=sa.value; ORC_F.busca=sb.value; vis(); if(FONTES.orc.dados) renderAba('orcamentos'); };
+  [sm,im,sa].forEach(e=>e.addEventListener('change',mudou)); sb.addEventListener('input',mudou);
+})();
+
 /* =====================================================================
    CRM COMERCIAL (app CRMCOMERCIAL) — lê a planilha pelo Apps Script (GET)
    Mesmo leitor do app: funil sai da aba GERENCIAL; vendas da REGISTRO VENDA;
    receita (comissão/serviços) da PREVISÃO COMISSÃO.
    ===================================================================== */
 CARREGADORES.crm = async ()=>{
-  const senha=lsGet(LS_CRM,'');
+  const senha=(PAINEL.params.crmSenha||'').trim();
   if(!senha) return null;
   const r=await lerUrl(CAMINHOS.crm.ponte+'?senha='+encodeURIComponent(senha), {redirect:'follow'});
   if(!r.ok) throw new Error('a planilha respondeu '+r.status);
   let json; try{ json=await r.json(); }catch(e){ throw new Error('a planilha não devolveu dados (implantação do script desatualizada?)'); }
   if(json&&json.erro) throw new Error(/senha/i.test(json.erro)?'senha da planilha incorreta — confira em ⚙ Fontes':json.erro);
   if(!json||!json.abas) throw new Error('resposta inesperada da planilha');
-  return crmProcessar(json);
+  const d=crmProcessar(json); d.bruto=json; return d;
 };
 
 /* ---- leitor (copiado do app) ---- */
@@ -1527,93 +1550,21 @@ function crmCalc(){
 }
 
 RESUMO.crm = ()=>{
-  const c=crmCalc();
+  const R=FONTES.crm.dados;
+  const vendas=R.registroVenda.filter(r=>passaYm(r.ym));
+  const abertos=R.crm.filter(r=>CRM_ABERTOS.has(r.status));
+  const prevMes=abertos.filter(r=>passaYm(crmYmFunil(r)));
+  const soma=a=>a.reduce((s,r)=>s+(r.valor||0),0);
   return { kpis:[
-    { l:'Em aberto no funil', v:brl0(c.vAberto), s:int(c.pipeline.length)+' negócio(s) · prev. '+descricaoFiltro() },
-    { l:'Previsão ponderada', v:brl0(c.ponderado), s:'valor × chance' },
-    { l:'Vendas fechadas', v:brl0(c.vVendas), cls:'pos', s:int(c.vendas.length)+' venda(s)' },
-    { l:'Receita (comissão + serviços)', v:brl0(c.receita), s:descricaoFiltro() },
+    { l:'Vendas no mês', v:brl0(soma(vendas)), cls:'pos', s:int(vendas.length)+' venda(s)' },
+    { l:'Funil em aberto', v:brl0(soma(abertos)), s:int(abertos.length)+' negócio(s)' },
+    { l:'Previsão do mês', v:brl0(prevMes.reduce((s,r)=>s+(r.valor||0)*(r.chance||0),0)), s:'ponderada · '+int(prevMes.length)+' negócio(s)' },
   ]};
 };
 
-RENDER.crm = ()=>{
-  const c=crmCalc(), R=c.R;
-  document.getElementById('crm-kpis').innerHTML =
-    tbox('Projetos no funil', int(c.base.length), int(c.pipeline.length)+' em aberto · '+descricaoFiltro()) +
-    tbox('Em aberto', brl0(c.vAberto), int(c.base.reduce((s,r)=>s+(r.pivos||0),0))+' pivôs · '+int(c.base.reduce((s,r)=>s+(r.area||0),0))+' ha', {sm:true}) +
-    tbox('Previsão ponderada', brl0(c.ponderado), 'em aberto × chance', {sm:true}) +
-    tbox('Vendas fechadas', brl0(c.vVendas), int(c.vendas.length)+' venda(s) · Registro de Venda', {sm:true, accent:true}) +
-    tbox('Receita MaqCampo', brl0(c.receita), 'comissão + serviços', {sm:true});
-
-  /* valor por estágio */
-  const est=CRM_ESTAGIOS.map(([k,l,cor])=>({l, cor, v:c.base.filter(r=>r.status===k).reduce((s,r)=>s+(r.valor||0),0), q:c.base.filter(r=>r.status===k).length}));
-  grafico('c-crm-estagio',{ type:'bar', data:{ labels:est.map(e=>e.l), datasets:[{ label:'Valor', data:est.map(e=>e.v), backgroundColor:est.map(e=>e.cor), borderRadius:3, maxBarThickness:48 }] },
-    options:{ plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:x=>' '+brl(x.raw)+' · '+est[x.dataIndex].q+' negócio(s)' } } }, scales:{ y:eixoBrl, x:semGrade } } });
-  /* funil por chance */
-  const faixas=[['0–25%',0,.25],['26–50%',.2501,.5],['51–75%',.5001,.75],['76–100%',.7501,1.01]];
-  const fx=faixas.map(([l,a,b])=>{ const rs=c.pipeline.filter(r=>(r.chance||0)>=a&&(r.chance||0)<b); return {l, v:rs.reduce((s,r)=>s+(r.valor||0),0), p:rs.reduce((s,r)=>s+(r.valor||0)*(r.chance||0),0), q:rs.length}; });
-  grafico('c-crm-chance',{ type:'bar', data:{ labels:fx.map(f=>f.l), datasets:[
-      { label:'Valor em aberto', data:fx.map(f=>f.v), backgroundColor:COR.areia, borderRadius:3 },
-      { label:'Ponderado', data:fx.map(f=>f.p), backgroundColor:COR.roxo, borderRadius:3 } ]},
-    options:{ plugins:{ legend:{position:'bottom'}, tooltip:{ callbacks:{ label:x=>' '+x.dataset.label+': '+brl(x.raw)+(x.datasetIndex===0?' · '+fx[x.dataIndex].q+' negócio(s)':'') } } }, scales:{ y:eixoBrl, x:semGrade } } });
-
-  /* série mensal */
-  const m=crmSerieMensal(R), jan=crmJanela(m), z={vendas:0,comissao:0,servicos:0,previsto:0,qtd:0};
-  const S=jan.map(k=>Object.assign({ym:k}, m[k]||z));
-  const ymHoje=hojeISO().slice(0,7);
-  if(S.length){
-    grafico('c-crm-mes',{ data:{ labels:S.map(x=>rotuloYm(x.ym)), datasets:[
-        { type:'bar', label:'Vendas registradas', data:S.map(x=>x.vendas), backgroundColor:S.map(x=>x.ym===ymHoje?COR.verdeEsc:COR.verde), borderRadius:3, order:2 },
-        { type:'line', label:'Previsão ponderada', data:S.map(x=>x.previsto), borderColor:COR.roxo, backgroundColor:'rgba(107,92,165,.12)', fill:true, tension:.3, pointRadius:2, order:1 } ]},
-      options:{ interaction:{mode:'index',intersect:false}, plugins:{ legend:{position:'bottom'}, tooltip:tipBrl }, scales:{ y:eixoBrl, x:semGrade } } });
-    grafico('c-crm-receita',{ type:'bar', data:{ labels:S.map(x=>rotuloYm(x.ym)), datasets:[
-        { label:'Comissão', data:S.map(x=>x.comissao), backgroundColor:COR.ouro, borderRadius:2 },
-        { label:'Serviços e montagem', data:S.map(x=>x.servicos), backgroundColor:COR.azul, borderRadius:2 } ]},
-      options:{ interaction:{mode:'index',intersect:false}, plugins:{ legend:{position:'bottom'}, tooltip:Object.assign({}, tipBrl, { callbacks:Object.assign({}, tipBrl.callbacks, { footer:it=>'Total: '+brl(it.reduce((s,i)=>s+i.raw,0)) }) }) },
-        scales:{ x:Object.assign({stacked:true},semGrade), y:Object.assign({stacked:true},eixoBrl) } } });
-    let aV=0,aR=0;
-    grafico('c-crm-acum',{ type:'line', data:{ labels:S.map(x=>rotuloYm(x.ym)), datasets:[
-        { label:'Vendas acumuladas', data:S.map(x=>(aV+=x.vendas)), borderColor:COR.verde, backgroundColor:COR.verde, tension:.25, pointRadius:0, borderWidth:2.2 },
-        { label:'Receita acumulada', data:S.map(x=>(aR+=x.comissao+x.servicos)), borderColor:COR.ouro, borderDash:[5,4], tension:.25, pointRadius:0, borderWidth:2.2 } ]},
-      options:{ interaction:{mode:'index',intersect:false}, plugins:{ legend:{position:'bottom'}, tooltip:tipBrl }, scales:{ y:eixoBrl, x:semGrade } } });
-  } else { semDados('c-crm-mes'); semDados('c-crm-receita'); semDados('c-crm-acum'); }
-
-  /* vendedores: em aberto × vendido */
-  const vend={};
-  c.pipeline.forEach(r=>{ const k=r.vendedor||'(sem vendedor)'; (vend[k]=vend[k]||{a:0,v:0}).a+=r.valor||0; });
-  c.vendas.forEach(r=>{ const k=r.vendedor||'(sem vendedor)'; (vend[k]=vend[k]||{a:0,v:0}).v+=r.valor||0; });
-  const vs=Object.entries(vend).sort((a,b)=>(b[1].a+b[1].v)-(a[1].a+a[1].v)).slice(0,15);
-  if(vs.length) barrasH('c-crm-vend', vs.map(x=>x[0]), [{nome:'Em aberto', valores:vs.map(x=>x[1].a), cor:COR.ouro},{nome:'Vendido', valores:vs.map(x=>x[1].v), cor:COR.verde}]);
-  else semDados('c-crm-vend');
-  const uf={}; c.base.forEach(r=>{ const k=r.uf||'—'; uf[k]=(uf[k]||0)+(r.valor||0); });
-  const us=Object.entries(uf).sort((a,b)=>b[1]-a[1]).slice(0,15);
-  if(us.length) barrasH('c-crm-uf', us.map(x=>x[0]), [{nome:'Valor', valores:us.map(x=>x[1]), cor:COR.azul}]); else semDados('c-crm-uf');
-
-  /* maiores negócios em aberto */
-  const top=c.pipeline.slice().sort((a,b)=>(b.valor||0)-(a.valor||0)).slice(0,25);
-  document.getElementById('crm-top-side').textContent=int(c.pipeline.length)+' em aberto · '+brl0(c.vAberto)+(R.geradoEm?' · planilha gerada em '+R.geradoEm:'');
-  const temp={quente:'🔥 quente', morno:'morno', frio:'❄ frio'};
-  document.getElementById('crm-top').innerHTML = tabela(
-    [{t:'Cliente'},{t:'Vendedor'},{t:'UF'},{t:'Estágio'},{t:'Temperatura'},{t:'Prev. fechamento'},{t:'Chance',r:1},{t:'Valor',r:1},{t:'Ponderado',r:1}],
-    top.map(r=>[ td(escapeHtml(r.cliente)), td(escapeHtml(r.vendedor||'—')), td(escapeHtml(r.uf||'—')), td(escapeHtml(titleCase(r.status))), td(temp[r.temperatura]||'—'),
-      td(dataBr(r.prevFechamento), r.prevFechamento&&r.prevFechamento<hojeISO()?'neg':''), tdn(pct(r.chance)), tdn(brl0(r.valor)), tdn(brl0((r.valor||0)*(r.chance||0))) ]));
-};
-
-/* senha da planilha (fica só neste navegador) */
-document.getElementById('btn-crm-senha').addEventListener('click', async()=>{
-  const v=document.getElementById('crm-senha').value.trim();
-  if(!v){ toast('Digite a senha.'); return; }
-  lsSet(LS_CRM, v); document.getElementById('crm-senha').value='';
-  if(!msAccount||!acessoLiberado){ toast('Senha guardada. Entre com a conta Microsoft para carregar.'); return; }
-  await carregarFonte('crm'); renderTudo();
-  toast(FONTES.crm.estado==='ok'?'CRM carregado.':'Não foi possível ler o CRM: '+FONTES.crm.msg);
-});
-document.getElementById('btn-crm-esquecer').addEventListener('click', ()=>{ lsSet(LS_CRM,''); FONTES.crm.dados=null; marcarFonte('crm','semsenha'); renderTudo(); toast('Senha removida deste aparelho.'); });
 
 /* ------------------------------ início ------------------------------ */
-montarFiltroUI();
-if(!lsGet(LS_CRM,'')) FONTES.crm.estado='semsenha';
-renderFontes();
+renderGeral();
 initAuth();
 
 </script>
