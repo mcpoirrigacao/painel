@@ -4,14 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- ==========================================================================
-  MAQCAMPO · Painel da Diretoria
+  PAINEL 360 - MCPO
   Painel SOMENTE LEITURA que lê os dados dos apps internos e redesenha os
   indicadores. Não grava nada: o login pede apenas permissão de leitura e todas
   as chamadas passam por lerUrl(), que recusa qualquer método diferente de GET.
   Fontes: SharePoint MCPOIRRIGACAO (Faturamento, Assistência, Obras, Orçamentos)
           e planilha Google do CRM Comercial (via Apps Script, só leitura).
   ========================================================================== -->
-<title>Painel Diretoria</title>
+<title>PAINEL 360 - MCPO</title>
 <style>
 :root{
   --azul-escuro:#03590f; --azul:#0a7517; --azul-claro:#1f8c33;
@@ -184,6 +184,7 @@ main.largo section.pane{animation:none;}
 body.modo-tv .embed-wrap iframe{height:calc(100vh - 190px);}
 
 .ac-kpis.c3{grid-template-columns:repeat(3,minmax(0,1fr));}
+.ac-kpis.c3 .v{white-space:nowrap;overflow-wrap:normal;font-size:.98rem;}
 </style>
 </head>
 <body>
@@ -191,8 +192,8 @@ body.modo-tv .embed-wrap iframe{height:calc(100vh - 190px);}
 <header class="app-header">
   <div class="brand-row">
     <div class="brand">
-      <span class="brand-mark">MAQCAMPO</span>
-      <span class="brand-sub">Painel da Diretoria · MCPO</span>
+      <span class="brand-mark">PAINEL 360 - MCPO</span>
+      <span class="brand-sub">MAQCAMPO Irrigação</span>
       <span class="selo-leitura" title="Os dados dos apps são só lidos. Nada é gravado nos apps nem na planilha.">🔒 visualização</span>
     </div>
     <div class="hdr-ctrls">
@@ -221,7 +222,7 @@ body.modo-tv .embed-wrap iframe{height:calc(100vh - 190px);}
     <button data-tab="geral" class="active">Visão Geral</button>
     <button data-tab="comercial" data-area="crm">Comercial<span class="dot" data-dot="crm"></span></button>
     <button data-tab="crmsam" data-area="sam">CRM SAM<span class="dot" data-dot="sam"></span></button>
-    <button data-tab="faturamento" data-area="fat">Faturamento<span class="dot" data-dot="fat"></span></button>
+    <button data-tab="faturamento" data-area="fat">Peças<span class="dot" data-dot="fat"></span></button>
     <button data-tab="assistencia" data-area="ast">Assistência Técnica<span class="dot" data-dot="ast"></span></button>
     <button data-tab="obras" data-area="obr">Obras<span class="dot" data-dot="obr"></span></button>
     <button data-tab="orcamentos" data-area="orc">Orçamentos<span class="dot" data-dot="orc"></span></button>
@@ -301,7 +302,7 @@ body.modo-tv .embed-wrap iframe{height:calc(100vh - 190px);}
   </section>
 </main>
 
-<div class="overlay" id="overlay-login"><div class="box"><div class="emoji">🔐</div><h2>Painel da Diretoria</h2><p>Entre com sua conta Microsoft da MAQCAMPO para ver os indicadores.</p><button onclick="document.getElementById('btn-ms-login').click()" class="btn primary" style="width:100%;padding:12px;" type="button">🔑 Entrar com Microsoft</button></div></div>
+<div class="overlay" id="overlay-login"><div class="box"><div class="emoji">🔐</div><h2>PAINEL 360 - MCPO</h2><p>Entre com sua conta Microsoft da MAQCAMPO para ver os indicadores.</p><button onclick="document.getElementById('btn-ms-login').click()" class="btn primary" style="width:100%;padding:12px;" type="button">🔑 Entrar com Microsoft</button></div></div>
 <div class="overlay" id="overlay-negado"><div class="box"><div class="emoji">🔒</div><h2>Acesso Restrito</h2><p>Seu e-mail não está liberado no painel. Peça a um administrador do painel para incluir você.</p><div id="overlay-email-info" style="background:var(--areia);border-radius:6px;padding:10px 14px;font-size:.82rem;color:var(--texto-suave);margin-bottom:20px;word-break:break-all;"></div><button onclick="document.getElementById('btn-ms-login').click()" class="btn ghost" style="width:100%;" type="button">Entrar com outra conta</button></div></div>
 <div class="toast" id="toast"></div>
 
@@ -487,7 +488,7 @@ let msalInstance=null, msAccount=null, msalReady=false;
 /* Padrão: as mesmas permissões que os outros apps já usam (a empresa exige aprovação de
    administrador para permissões novas). O login só leitura é ativado em ⚙ Fontes depois
    que o administrador liberar Sites.Read.All para o app no Azure. */
-let escopoAtual = lsGet(LS_ESCOPO,'reserva')==='leitura' ? SCOPES_LEITURA : SCOPES_RESERVA;
+let escopoAtual = SCOPES_RESERVA; lsSet(LS_ESCOPO,'');
 function usandoReserva(){ return escopoAtual===SCOPES_RESERVA; }
 function loadMsal(){ return new Promise((res,rej)=>{ if(window.msal){res();return;}
   const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.7.1/lib/msal-browser.min.js';
@@ -656,7 +657,7 @@ function normParams(d){
 const FONTES={
   crm:{ nome:'CRM Comercial', onde:'Planilha Google (Apps Script)', estado:'idle', msg:'', quando:null, dados:null },
   sam:{ nome:'CRM SAM', onde:'SharePoint › CRM SAM', estado:'idle', msg:'', quando:null, dados:null },
-  fat:{ nome:'Faturamento', onde:'SharePoint › Faturamento', estado:'idle', msg:'', quando:null, dados:null },
+  fat:{ nome:'Peças', onde:'SharePoint › Faturamento', estado:'idle', msg:'', quando:null, dados:null },
   ast:{ nome:'Assistência Técnica', onde:'SharePoint › assistencia', estado:'idle', msg:'', quando:null, dados:null },
   obr:{ nome:'Obras de Montagem', onde:'SharePoint › Execução de Montagem', estado:'idle', msg:'', quando:null, dados:null },
   orc:{ nome:'Orçamentos', onde:'SharePoint › Orçamentos Montagem/Historico_montagem', estado:'idle', msg:'', quando:null, dados:null },
@@ -749,18 +750,11 @@ function renderFontes(){
     const st={ok:['ok','✓ lido'],erro:['erro','⚠ erro'],carregando:['carregando','⏳ lendo'],semsenha:['erro','🔑 falta senha'],idle:['carregando','—']}[f.estado];
     return `<div class="linha"><b>${f.nome}</b><span class="st ${st[0]}">${st[1]}</span><span class="det">${escapeHtml(f.onde)}${f.quando?' · última leitura às '+horaBr(f.quando):''}${f.msg?' · '+escapeHtml(f.msg):''}</span></div>`;
   }).join('') +
-  `<div class="linha"><b>Pasta Painel</b><span class="st ${PAINEL.pastaOk?'':'erro'}">${PAINEL.pastaOk?'✓ ok':'⚠ '+escapeHtml(PAINEL.erroPasta||'sem acesso')}</span><span class="det">usuários e parâmetros do painel (painel_acesso.json · painel_parametros.json)</span></div>` +
-  `<div class="linha"><b>Permissão Microsoft</b><span class="st ${usandoReserva()?'carregando':''}">${usandoReserva()?'mesma dos apps':'só leitura'}</span><span class="det">${usandoReserva()
-      ? 'O login usa as permissões já aprovadas para os outros apps. As telas dos apps continuam sem nenhuma gravação. Quando o administrador liberar Sites.Read.All no Azure, dá para ativar o login só leitura (aí os parâmetros desta aba deixam de poder ser salvos).'
-      : 'O login pede apenas leitura (Sites.Read.All). Os parâmetros desta aba não podem ser salvos neste modo.'}</span>
-      <button class="btn ghost small" id="btn-escopo" type="button">${usandoReserva()?'Ativar login só leitura':'Voltar às permissões dos apps'}</button></div>`;
-  const be=document.getElementById('btn-escopo');
-  if(be) be.onclick=()=>{ const ir=usandoReserva(); if(ir&&!confirm('Só funciona se o administrador já liberou Sites.Read.All para o app no Azure. Continuar?')) return;
-    lsSet(LS_ESCOPO, ir?'leitura':'reserva'); escopoAtual=ir?SCOPES_LEITURA:SCOPES_RESERVA; _siteId=null; Object.keys(_pastas).forEach(x=>delete _pastas[x]); renderFontes(); carregarTudo(false); };
+  `<div class="linha"><b>Pasta Painel</b><span class="st ${PAINEL.pastaOk?'':'erro'}">${PAINEL.pastaOk?'✓ ok':'⚠ '+escapeHtml(PAINEL.erroPasta||'sem acesso')}</span><span class="det">usuários e parâmetros do painel (painel_acesso.json · painel_parametros.json)</span></div>`;
 }
 
 /* ------------------------------ admin: usuários e parâmetros ------------------------------ */
-const NOMES_AREA={crm:'Comercial',sam:'CRM SAM',fat:'Faturamento',ast:'Assistência Técnica',obr:'Obras',orc:'Orçamentos'};
+const NOMES_AREA={crm:'Comercial',sam:'CRM SAM',fat:'Peças',ast:'Assistência Técnica',obr:'Obras',orc:'Orçamentos'};
 function renderAdmin(){
   if(PAINEL.nivel!=='admin') return;
   const lst=(arr,tipo)=>arr.length?arr.map((em,i)=>`<div class="user-row"><span>👤 ${escapeHtml(em)}${em===emailAtual()?' <span class="reg">você</span>':''}</span><button class="btn danger small" data-rem="${tipo}" data-i="${i}" type="button">remover</button></div>`).join('')
@@ -827,7 +821,7 @@ async function adminEmAlgumApp(){
   if(_adminEmAlgumApp) return _adminEmAlgumApp;
   const e=emailAtual(), low=a=>(a||[]).map(x=>String(x).toLowerCase().trim());
   const fontes=[
-    ['Faturamento', ()=>lerJsonSP(CAMINHOS.fat.pasta, CAMINHOS.fat.acesso), d=>low(d.emailsAutorizados)],
+    ['Peças', ()=>lerJsonSP(CAMINHOS.fat.pasta, CAMINHOS.fat.acesso), d=>low(d.emailsAutorizados)],
     ['Assistência', ()=>lerJsonSP(CAMINHOS.ast.pasta, CAMINHOS.ast.acesso), d=>low(d.emailsAutorizados)],
     ['Obras', ()=>lerJsonSP(CAMINHOS.obr.pasta, CAMINHOS.obr.acesso), d=>low(d.emailsAutorizados)],
     ['Orçamentos', ()=>lerJsonSP(CAMINHOS.orc.pasta, CAMINHOS.orc.params), d=>low(d.emailsAutorizados).concat(low(d.emailsGestores))],
@@ -1693,9 +1687,9 @@ RESUMO.crm = ()=>{
   const prevMes=abertos.filter(r=>passaYm(crmYmFunil(r)));
   const soma=a=>a.reduce((s,r)=>s+(r.valor||0),0);
   return { kpis:[
-    { l:'Vendas no mês', v:brl0(soma(vendas)), cls:'pos', s:int(vendas.length)+' venda(s)' },
-    { l:'Funil em aberto', v:brl0(soma(abertos)), s:int(abertos.length)+' negócio(s)' },
-    { l:'Previsão do mês', v:brl0(prevMes.reduce((s,r)=>s+(r.valor||0)*(r.chance||0),0)), s:'ponderada · '+int(prevMes.length)+' negócio(s)' },
+    { l:'Vendas no mês', v:brlK(soma(vendas)), cls:'pos', s:int(vendas.length)+' venda(s)' },
+    { l:'Funil em aberto', v:brlK(soma(abertos)), s:int(abertos.length)+' negócio(s)' },
+    { l:'Previsão do mês', v:brlK(prevMes.reduce((s,r)=>s+(r.valor||0)*(r.chance||0),0)), s:'ponderada · '+int(prevMes.length)+' negócio(s)' },
   ]};
 };
 
@@ -1723,9 +1717,9 @@ RESUMO.sam = ()=>{
   const ganhos=deals.filter(d=>d.etapa==='ganho' && (!d.dataFechamento || String(d.dataFechamento).startsWith(ano)));
   const vg=ganhos.reduce((a,d)=>a+n(d.valor),0), meta=n(cfg.meta);
   return { kpis:[
-    { l:'Em negociação', v:brl0(pipe), s:int(ativos.length)+' oportunidade(s)' },
-    { l:'Previsão ponderada', v:brl0(pond), s:pipe?int(pond/pipe*100)+'% do valor':'' },
-    { l:'Fechado em '+ano, v:brl0(vg), cls:'pos', s:meta?pct(vg/meta)+' da meta de '+brl0(meta):int(ganhos.length)+' contrato(s)', bar:meta?vg/meta:null },
+    { l:'Em negociação', v:brlK(pipe), s:int(ativos.length)+' oportunidade(s)' },
+    { l:'Previsão ponderada', v:brlK(pond), s:pipe?int(pond/pipe*100)+'% do valor':'' },
+    { l:'Fechado em '+ano, v:brlK(vg), cls:'pos', s:meta?pct(vg/meta)+' da meta de '+brl0(meta):int(ganhos.length)+' contrato(s)', bar:meta?vg/meta:null },
   ]};
 };
 

@@ -1,8 +1,8 @@
-# Painel da Diretoria — MCPO / MAQCAMPO
+# PAINEL 360 - MCPO
 
 **Acesso:** https://mcpoirrigacao.github.io/painel/
 
-Reúne, em modo **visualização**, as telas dos apps internos: CRM Comercial, CRM SAM, Faturamento,
+Reúne, em modo **visualização**, as telas dos apps internos: CRM Comercial, CRM SAM, Peças,
 Assistência Técnica, Obras de Montagem e Orçamentos, mais uma Visão Geral resumida do mês.
 
 ## Como funciona
