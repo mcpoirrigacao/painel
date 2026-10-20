@@ -329,7 +329,10 @@ const SP_BIBLIOTECA   = 'Documentos Compartilhados';
 
 /* De onde cada área é lida (mesmos arquivos que os apps usam) */
 const CAMINHOS = {
-  fat: { pasta:'Faturamento', dados:'faturamento_dados.json', acesso:'faturamento_acesso.json', app:'https://mcpoirrigacao.github.io/pecas/' },
+  /* Peças Varejo: mesma ordem de busca do app (pasta nova + nome novo; pasta nova + nome antigo; pasta antiga) */
+  fat: { dados:[['Pecas Varejo','pecas_varejo_dados.json'],['Pecas Varejo','faturamento_dados.json'],['Faturamento','faturamento_dados.json']],
+         acesso:[['Pecas Varejo','pecas_varejo_acesso.json'],['Pecas Varejo','faturamento_acesso.json'],['Faturamento','faturamento_acesso.json']],
+         app:'https://mcpoirrigacao.github.io/pecas/' },
   ast: { pasta:'assistencia', dados:'assistencia_dados.json', acesso:'assistencia_acesso.json', app:'https://mcpoirrigacao.github.io/assistencia/' },
   obr: { pasta:'Execução de Montagem', clientes:'mcpo_clientes.json', obras:'mcpo_obras.json', lancamentos:'mcpo_lancamentos.json', tecnicos:'mcpo_tecnicos.json',
          alocacoes:'mcpo_alocacoes.json', listas:'mcpo_listas.json', acesso:'mcpo_acesso.json', app:'https://mcpoirrigacao.github.io/ACPTmontagem/' },
@@ -665,7 +668,7 @@ function normParams(d){
 const FONTES={
   crm:{ nome:'CRM Comercial', onde:'Planilha Google (Apps Script)', estado:'idle', msg:'', quando:null, dados:null },
   sam:{ nome:'CRM SAM', onde:'SharePoint › CRM SAM', estado:'idle', msg:'', quando:null, dados:null },
-  fat:{ nome:'Peças', onde:'SharePoint › Faturamento', estado:'idle', msg:'', quando:null, dados:null },
+  fat:{ nome:'Peças', onde:'SharePoint › Pecas Varejo', estado:'idle', msg:'', quando:null, dados:null },
   ast:{ nome:'Assistência Técnica', onde:'SharePoint › assistencia', estado:'idle', msg:'', quando:null, dados:null },
   obr:{ nome:'Obras de Montagem', onde:'SharePoint › Execução de Montagem', estado:'idle', msg:'', quando:null, dados:null },
   orc:{ nome:'Orçamentos', onde:'SharePoint › Orçamentos Montagem/Historico_montagem', estado:'idle', msg:'', quando:null, dados:null },
@@ -829,7 +832,7 @@ async function adminEmAlgumApp(){
   if(_adminEmAlgumApp) return _adminEmAlgumApp;
   const e=emailAtual(), low=a=>(a||[]).map(x=>String(x).toLowerCase().trim());
   const fontes=[
-    ['Peças', ()=>lerJsonSP(CAMINHOS.fat.pasta, CAMINHOS.fat.acesso), d=>low(d.emailsAutorizados)],
+    ['Peças', ()=>lerPrimeiroSP(CAMINHOS.fat.acesso), d=>low(d.emailsAutorizados)],
     ['Assistência', ()=>lerJsonSP(CAMINHOS.ast.pasta, CAMINHOS.ast.acesso), d=>low(d.emailsAutorizados)],
     ['Obras', ()=>lerJsonSP(CAMINHOS.obr.pasta, CAMINHOS.obr.acesso), d=>low(d.emailsAutorizados)],
     ['Orçamentos', ()=>lerJsonSP(CAMINHOS.orc.pasta, CAMINHOS.orc.params), d=>low(d.emailsAutorizados).concat(low(d.emailsGestores))],
@@ -982,11 +985,11 @@ const CONTROLES_CABECALHO = 'header.app-header input[id]:not([type=hidden]):not(
 
 const EMBED = {
   fat: {
-    storage: d=>({ 'maqcampo-faturamento-v1': JSON.stringify(d) }),
+    storage: d=>({ 'maqcampo-pecas-varejo-v1': JSON.stringify(d), 'maqcampo-faturamento-v1': JSON.stringify(d) }),
     css: CSS_SEM_CABECALHO+` nav.tabs button[data-tab="lancamento"],#pane-lancamento,#btn-reset,#btn-add-feriado,#btn-add-loja{display:none!important}`,
     menu: MENU_ABAS, controles: CONTROLES_CABECALHO,
     init: `nivelAcesso=function(){return 'comum'}; applyAccess(); renderAll();`,
-    refresh: `state=JSON.parse(localStorage.getItem('maqcampo-faturamento-v1')); renderAll();`,
+    refresh: `state=JSON.parse(localStorage.getItem('maqcampo-pecas-varejo-v1')); renderAll();`,
   },
   ast: {
     storage: d=>({ 'maqcampo-assistencia-tecnica-v1': JSON.stringify(d) }),
@@ -1211,10 +1214,21 @@ function renderSubmenu(k){
    FATURAMENTO (app pecas) — mesmas regras de cálculo do app
    Arquivo: {config:{metaTotal,inicio,fim,limitePerda,feriados,lojas}, lanc:{"aaaa-mm-dd|LOJA":{ct,or,vq,pd,ft,dv}}}
    ===================================================================== */
+/* lê o primeiro candidato que existir (pasta/arquivo), na mesma ordem do app */
+async function lerPrimeiroSP(cands){
+  let ultimoErro=null;
+  for(const [pasta,arq] of cands){
+    try{ const r=await lerJsonSP(pasta,arq); if(!r.missing && r.data) return Object.assign(r,{pasta,arq}); }
+    catch(e){ ultimoErro=e; }
+  }
+  if(ultimoErro) throw ultimoErro;
+  return {missing:true, data:null};
+}
 CARREGADORES.fat = async ()=>{
-  const r=await lerJsonSP(CAMINHOS.fat.pasta, CAMINHOS.fat.dados);
-  if(r.missing||!r.data||!r.data.config||!r.data.lanc) throw new Error('arquivo de dados do Faturamento não encontrado');
-  const s=r.data;
+  const r=await lerPrimeiroSP(CAMINHOS.fat.dados);
+  if(r.missing||!r.data||!r.data.config||!r.data.lanc) throw new Error('arquivo de dados de Peças não encontrado (pasta Pecas Varejo)');
+  FONTES.fat.onde='SharePoint › '+r.pasta+' › '+r.arq;
+  const s=JSON.parse(JSON.stringify(r.data));
   s.config.feriados=s.config.feriados||[]; s.config.lojas=s.config.lojas||[];
   return s;
 };
