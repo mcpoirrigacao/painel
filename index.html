@@ -1505,6 +1505,237 @@ RESUMO.obr = ()=>{
 
 
 /* =====================================================================
+   CÁLCULO DO ORÇAMENTO — copiado do app de Orçamentação (orc_mcpo):
+   TASKS, defaultState() e compute(). Usado para a margem líquida real:
+   margem = (valor final − custo total da obra − imposto) ÷ valor final.
+   Se a regra mudar no app, este trecho precisa ser recopiado.
+   ===================================================================== */
+const ORC_CALC=(function(){
+  function n(v){const x=Number(v); return isFinite(x)?x:0;}
+  function ceilDiv(a,b){ if(b<=0) return 0; return Math.ceil(a/b); }
+  const TASKS = [
+  {id:'ELET-018', grupo:'AD', desc:'Adicional. Ligação elétrica (fora do projeto)', horas:1, tipo:'pct'},
+  {id:'ELET-021', grupo:'ADUTORA', desc:'Montagem ligação elétrica de válvula ON/OFF', horas:4, tipo:'pct'},
+  {id:'MONT-002', grupo:'ADUTORA (TUBULAÇÃO)', desc:'Montagem tubulação até DN350mm (0 a 350mm)', horas:1, tipo:'fix', unidade:'metros'},
+  {id:'MONT-003', grupo:'ADUTORA (TUBULAÇÃO)', desc:'Montagem tubulação até DN450mm (355 a 450mm)', horas:1.5, tipo:'fix', unidade:'metros'},
+  {id:'MONT-004', grupo:'ADUTORA (TUBULAÇÃO)', desc:'Montagem tubulação até DN600mm (450 a 600mm)', horas:2, tipo:'fix', unidade:'metros'},
+  {id:'ELET-004', grupo:'BARREIRA', desc:'Montagem autoreversão parada x barreira (por pivô)', horas:6, tipo:'pct'},
+  {id:'ELET-010', grupo:'CENTRAL', desc:'Montagem central de comunicação', horas:1.5, tipo:'pct'},
+  {id:'ELET-011', grupo:'CENTRAL', desc:'Montagem repetidora com energia 120/220V', horas:1.5, tipo:'pct'},
+  {id:'ELET-012', grupo:'CENTRAL', desc:'Montagem repetidora com placa solar', horas:1.5, tipo:'pct'},
+  {id:'ELET-022', grupo:'CENTRAL', desc:'Montagem ligação SPOTI', horas:1, tipo:'pct'},
+  {id:'ELET-023', grupo:'CENTRAL', desc:'Montagem ligação IRRIPUMP', horas:2, tipo:'pct'},
+  {id:'ELET-003', grupo:'CONJUNTO DE BOMBEAMENTO', desc:'Ligação elét. motor e quadro (por motobomba)', horas:6, tipo:'pct'},
+  {id:'ELET-025', grupo:'CONJUNTO DE BOMBEAMENTO', desc:'Ligação SAFE BOMB (antifurto)', horas:5, tipo:'pct'},
+  {id:'MONT-005', grupo:'CONJUNTO DE BOMBEAMENTO', desc:'Conj. de bombeamento com flutuante (fibra pronta)', horas:1.5, tipo:'pct'},
+  {id:'MONT-008', grupo:'CONJUNTO DE BOMBEAMENTO', desc:'Conj. de motobombas na casa de bombeamento (por motobomba)', horas:14, tipo:'pct'},
+  {id:'MONT-006', grupo:'CONJUNTO DE BOMBEAMENTO', desc:'Conj. de bombeamento com balsa (metal, precisa montagem)', horas:8, tipo:'pct'},
+  {id:'ELET-002', grupo:'LANCES', desc:'Ligação elét. por torre de sustentação (caixinha elétrica)', horas:1, tipo:'pct'},
+  {id:'ELET-024', grupo:'LANCES', desc:'Ligação SAFE por pivô (antifurto)', horas:3, tipo:'pct'},
+  {id:'MONT-001', grupo:'LANCES', desc:'Montagem torre + balanço (estrutura física)', horas:6.25, tipo:'pct'},
+  {id:'ELET-020', grupo:'LANCES', desc:'Ligação elétrica de trafo booster (pivôs acima de 14 lances)', horas:3, tipo:'pct'},
+  {id:'MONT-010', grupo:'PEAD', desc:'Solda de PEAD (quantidade de soldas)', horas:1, tipo:'pct'},
+  {id:'ELET-000', grupo:'TORRE CENTRAL', desc:'Ligação painel e parametrização (por pivô)', horas:1, tipo:'pct'},
+  {id:'ELET-001', grupo:'TORRE CENTRAL', desc:'Ligação painel e anel coletor (por pivô)', horas:3, tipo:'pct'},
+  {id:'ELET-008', grupo:'TORRE CENTRAL', desc:'GPS GNSS RTK e IRRIMESH (por pivô)', horas:4, tipo:'pct'},
+  {id:'ELET-013', grupo:'TORRE CENTRAL', desc:'Sensor de chuva (por pivô)', horas:0.5, tipo:'pct'},
+];
+  const SOLDA_PEAD_ID = 'MONT-010';
+  function defaultState(){
+  return {
+    info:{empresa:'MAQCAMPO IRRIGAÇÃO', cliente:'', obra:'', endereco:'', vendedor:'', responsavel:'', hectares:'', numPivos:0},
+    equipe:{qtdEquipes:1, auxAdicionais:0, qtdMunck:1, kmDiario:0, kmOrigem:0, kmLoja:0, adcHr:0, diasTrator:0, diasCaminhao:0, diasMunck:0, casaM2:0, prazoManual:null},
+    servicos:{trator:false, caminhao:false, freteMcpo:false, munck:false, escavadeira:false, basePivo:false, casaPadrao:false, maquinaPead:false, alimAlmoco:false, alimJantar:false, hospedagem:false, auxiliares:false},
+    precos:{hospedagem:80, km:3.9, refeicao:80, trator:325, horaTecnica:260, horaAuxiliar:0, caminhao:300, freteKm:8.5, maquinaPead:2500, soldaPead:260, munck:2500, munckMes:40000, freteEscavadeiraKm:13, metroEscavadeira:15, basePivo:18000, casaM2:2500, pctMontador:12, pctAuxiliar:3, tubDN350:1.45, tubDN450:1.70, tubDN600:1.80, horaEncargo:260, fatorComAux:5, fatorSemAux:2},
+    tasks:{},
+    extras:[
+      {desc:'Geomembrana', unidade:'m²', qtd:0, valorTotal:0},
+      {desc:'Solda PEAD acima de 355mm', unidade:'un', qtd:0, valorTotal:0},
+      {desc:'Técnico de Segurança', unidade:'mensal', qtd:0, valorTotal:0},
+      {desc:'Insumos Adicionais', unidade:'un', qtd:0, valorTotal:0},
+    ],
+    financeiro:{desconto:0, imposto:22.15, margem:20, margemMinima:15, descontoMaximo:10, descontoLiberado:false, descontoAutorizado:0, autorizadoPor:null, custoNaAutorizacao:null, margemNaAutorizacao:null, valorNaAutorizacao:null, valorFinalManual:null},
+    observacoes:'',
+    observacoesInternas:'',
+    aprovacao:{ aprovado:false, por:null, em:null },
+  };
+}
+  let state;
+  function compute(){
+  const out = {};
+
+  // --- Tarefas ---
+  let tmoPct = 0, laborMont = 0, laborAux = 0;
+  let adutoraMetros = 0, qtySoldaPead = 0;
+  const perTask = {};
+  TASKS.forEach(t=>{
+    const qtd = n(state.tasks[t.id]);
+    let horasTotal, vMont, vAux;
+    if(t.tipo==='fix'){
+      // valorUnit vem do state para tubulações, fallback para t.valorUnit se houver
+      let vu = t.valorUnit;
+      if(t.id==='MONT-002') vu = n(state.precos.tubDN350);
+      else if(t.id==='MONT-003') vu = n(state.precos.tubDN450);
+      else if(t.id==='MONT-004') vu = n(state.precos.tubDN600);
+      horasTotal = t.horas*qtd;
+      vMont = qtd * vu;
+      vAux  = qtd * vu;
+      adutoraMetros += qtd;
+    } else if(t.id === SOLDA_PEAD_ID){
+      // Solda PEAD: só existe quando a MCPO executa o serviço (caixa marcada).
+      // Desmarcada, não há pagamento à equipe nem horas no prazo.
+      horasTotal = t.horas*qtd;
+      if(state.servicos.maquinaPead){
+        vMont = t.horas*qtd*state.precos.horaEncargo*(n(state.precos.pctMontador)/100);
+        vAux  = t.horas*qtd*state.precos.horaEncargo*(n(state.precos.pctAuxiliar)/100);
+        tmoPct += horasTotal;
+      } else {
+        vMont = 0;
+        vAux  = 0;
+      }
+    } else {
+      horasTotal = t.horas*qtd;
+      vMont = t.horas*qtd*state.precos.horaEncargo*(n(state.precos.pctMontador)/100);
+      vAux  = t.horas*qtd*state.precos.horaEncargo*(n(state.precos.pctAuxiliar)/100);
+      tmoPct += horasTotal;
+    }
+    if(t.id===SOLDA_PEAD_ID) qtySoldaPead = qtd;
+    perTask[t.id] = {horasTotal, vMont, vAux};
+    laborMont += vMont;
+    laborAux  += vAux;
+  });
+  // regra especial de tubulação (equivalente à fórmula AA29 da planilha):
+  // produção de referência: 500m a cada 10h; mínimo de 8h se houver qualquer metragem abaixo de 499m
+  let adutoraHorasEspecial = 0;
+  if(adutoraMetros>0 && adutoraMetros<499) adutoraHorasEspecial = 8;
+  else if(adutoraMetros>=499) adutoraHorasEspecial = (adutoraMetros/500)*10;
+  const tmoTotal = tmoPct + adutoraHorasEspecial;
+  const encargosTime = laborMont + laborAux;
+
+  out.perTask=perTask; out.tmoTotal=tmoTotal; out.laborMont=laborMont; out.laborAux=laborAux;
+  out.encargosTime=encargosTime; out.adutoraMetros=adutoraMetros; out.qtySoldaPead=qtySoldaPead;
+
+  // --- Equipe / prazo ---
+  const qtdEquipes = Math.max(1, n(state.equipe.qtdEquipes));
+  const auxAdicionais = n(state.equipe.auxAdicionais) || 0;
+  const pessoasBase = state.servicos.auxiliares ? qtdEquipes*n(state.precos.fatorComAux) : qtdEquipes*n(state.precos.fatorSemAux);
+  const qtdPessoas = pessoasBase + auxAdicionais;
+  const diasCorridos = (Math.max(0, n(state.equipe.adcHr))+tmoTotal)/8 + (tmoTotal/8*0.3);
+  const prazoEstimado = (state.equipe.prazoManual!=null) ? n(state.equipe.prazoManual) : Math.max(1, ceilDiv(diasCorridos, qtdEquipes));
+  out.qtdPessoas=qtdPessoas; out.diasCorridos=diasCorridos; out.prazoEstimado=prazoEstimado;
+
+  // --- Custos: PIVÔS ---
+  const P = state.precos, S = state.servicos, E = state.equipe;
+  const hospQtd = prazoEstimado*qtdPessoas;
+  const hospTotal = S.hospedagem ? hospQtd*P.hospedagem : 0;
+
+  const kmQtd = (qtdEquipes*Math.max(E.kmDiario,25)*prazoEstimado) + (E.kmOrigem*qtdEquipes*ceilDiv(prazoEstimado,30))*2;
+  const kmTotal = kmQtd*P.km;
+
+  const almocoJantar = S.alimAlmoco && S.alimJantar;
+  const algumaRefeicao = S.alimAlmoco || S.alimJantar;
+  const alimQtd = prazoEstimado*qtdPessoas;
+  const alimTotal = almocoJantar ? alimQtd*P.refeicao : (algumaRefeicao ? (alimQtd*P.refeicao)/2 : 0);
+
+  const tratorTotal = S.trator ? E.diasTrator*P.trator : 0;
+  const horaQtd = Math.max(0, n(E.adcHr)) + tmoTotal;
+  const custoHoraAux = (qtdPessoas > 1) ? (qtdPessoas - 1) * n(P.horaAuxiliar) * horaQtd : 0;
+  const horaUnit = n(P.horaTecnica) + (qtdPessoas > 1 ? (qtdPessoas - 1) * n(P.horaAuxiliar) : 0);
+  const horaTotal = horaQtd*P.horaTecnica + custoHoraAux;
+  const caminhaoTotal = S.caminhao ? E.diasCaminhao*P.caminhao : 0;
+  const freteTotal = S.freteMcpo ? E.kmLoja*P.freteKm*2 : 0;
+  const peadDias    = ceilDiv(qtySoldaPead,10);
+  const peadAluguel = S.maquinaPead ? peadDias*n(P.maquinaPead) : 0;   // locação da máquina
+  const peadSoldas  = S.maquinaPead ? qtySoldaPead*n(P.soldaPead) : 0; // serviço de solda
+  const peadTotal   = peadAluguel + peadSoldas;
+  const qtdMunck = Math.max(1, n(E.qtdMunck) || 1);   // 0 ou vazio = 1 caminhão
+  const munckTotal = S.munck ? (E.diasMunck<17 ? E.diasMunck*P.munck : ceilDiv(E.diasMunck,30)*P.munckMes) * qtdMunck : 0;
+
+  const totalPivos = hospTotal+kmTotal+alimTotal+tratorTotal+horaTotal+caminhaoTotal+freteTotal+peadTotal+munckTotal;
+
+  // --- Custos: ADUTORA ---
+  const fEscTotal = S.escavadeira ? E.kmLoja*P.freteEscavadeiraKm*2 : 0;
+  const escTotal = S.escavadeira ? adutoraMetros*P.metroEscavadeira : 0;
+  const totalAdutora = fEscTotal+escTotal;
+
+  // --- Custos: INFRAESTRUTURA ---
+  const numPivos = n(state.info.numPivos);
+  const baseTotal = S.basePivo ? numPivos*P.basePivo : 0;
+  const casaTotal = S.casaPadrao ? E.casaM2*P.casaM2 : 0;
+  const totalInfra = baseTotal+casaTotal;
+
+  // --- Extras ---
+  const totalExtras = state.extras.reduce((s,ex)=>s+n(ex.valorTotal),0);
+
+  const somaBruta = totalPivos+totalAdutora+totalInfra+totalExtras+encargosTime;
+  const custoTotalObra = somaBruta;
+
+  Object.assign(out,{
+    hospQtd,hospTotal,kmQtd,kmTotal,alimQtd,alimTotal,tratorTotal,horaQtd,horaUnit,horaTotal,
+    qtdMunck,caminhaoTotal,freteTotal,peadDias,peadAluguel,peadSoldas,peadTotal,munckTotal,totalPivos,
+    fEscTotal,escTotal,totalAdutora,baseTotal,casaTotal,totalInfra,totalExtras,
+    custoTotalObra
+  });
+
+  // --- Precificação ---
+  const impostoPct = n(state.financeiro.imposto)/100;
+  const margemPct = n(state.financeiro.margem)/100;
+  const descontoPct = n(state.financeiro.desconto)/100;
+  const denom = 1-margemPct-impostoPct;
+  const valorSemDesconto = denom>0 ? custoTotalObra/denom : custoTotalObra;
+  const valorSugerido = valorSemDesconto * (1 - descontoPct);
+  const valorFinal = (state.financeiro.valorFinalManual!=null) ? n(state.financeiro.valorFinalManual) : valorSugerido;
+  const impostoValor = valorFinal*impostoPct;
+  const lucro = valorFinal-custoTotalObra-impostoValor;
+  const margemReal = valorFinal>0 ? (lucro/valorFinal)*100 : 0;
+
+  // --- Teto de desconto ---
+  // Desconto que ainda mantém a margem real no piso mínimo:
+  //   d_max = 1 - (1 - margem - imposto) / (1 - imposto - margemMinima)
+  const margemMinPct = n(state.financeiro.margemMinima)/100;
+  const denomPiso = 1 - impostoPct - margemMinPct;
+  let descontoPorMargem = (denomPiso > 0 && denom > 0) ? (1 - denom/denomPiso)*100 : 0;
+  if(descontoPorMargem < 0) descontoPorMargem = 0;
+  const descontoTetoParam = n(state.financeiro.descontoMaximo);
+  // Vale o mais restritivo entre o teto de política e o piso de margem
+  const descontoMaxPermitido = Math.min(descontoTetoParam, descontoPorMargem);
+  const descontoLiberado = !!state.financeiro.descontoLiberado;
+  const descontoAutorizado = n(state.financeiro.descontoAutorizado);
+  const autorizadoPor = state.financeiro.autorizadoPor || null;
+  // Custo registrado no momento em que o preço foi autorizado
+  const custoNaAutorizacao  = state.financeiro.custoNaAutorizacao;
+  const margemNaAutorizacao = state.financeiro.margemNaAutorizacao;
+  const valorNaAutorizacao  = state.financeiro.valorNaAutorizacao;
+  const custoAlterado = !!(descontoLiberado && custoNaAutorizacao != null
+                        && Math.abs(custoTotalObra - custoNaAutorizacao) > 0.01);
+  const deltaCusto = custoAlterado ? (custoTotalObra - custoNaAutorizacao) : 0;
+  // Preço autorizado por percentual acompanha o custo; por valor fixo, não
+  const precoAlterado = !!(descontoLiberado && valorNaAutorizacao != null
+                        && Math.abs(valorFinal - valorNaAutorizacao) > 0.01);
+  const deltaPreco = precoAlterado ? (valorFinal - valorNaAutorizacao) : 0;
+  // Piso do valor final: equivale ao maior desconto permitido nesta obra
+  const valorMinimoPermitido = valorSemDesconto * (1 - descontoMaxPermitido/100);
+
+  Object.assign(out,{
+    valorSugerido, valorFinal, impostoValor, lucro, margemReal, valorSemDesconto,
+    descontoPorMargem, descontoTetoParam, descontoMaxPermitido, descontoLiberado,
+    descontoAutorizado, valorMinimoPermitido, autorizadoPor,
+    custoNaAutorizacao, margemNaAutorizacao, valorNaAutorizacao,
+    custoAlterado, deltaCusto, precoAlterado, deltaPreco
+  });
+  return out;
+}
+  /* mesmo que computeFromState() do app; seções ausentes em registros antigos vêm do padrão */
+  function calcular(data){
+    const d=defaultState(), s=JSON.parse(JSON.stringify(data||{}));
+    ['info','equipe','servicos','precos','financeiro'].forEach(k=>{ s[k]=Object.assign({}, d[k], s[k]||{}); });
+    if(!s.tasks) s.tasks={}; if(!Array.isArray(s.extras)) s.extras=d.extras;
+    state=s; try{ return compute(); } finally{ state=null; }
+  }
+  return { calcular };
+})();
+
+/* =====================================================================
    ORÇAMENTOS (app orc_mcpo) — um arquivo historico_<email>.json por vendedor
    Cada item: {savedAt, savedBy:{nome,email}, valorFinal, excluido?, data:{info:{cliente,obra,vendedor,numPivos,hectares}, financeiro:{margem,imposto,desconto}}}
    ===================================================================== */
@@ -1518,12 +1749,16 @@ CARREGADORES.orc = async ()=>{
 function orcLinhas(){
   return FONTES.orc.dados.registros.map(r=>{
     const info=r.data.info||{}, fin=r.data.financeiro||{}, ap=r.data.aprovacao;
+    let c=null; try{ c=ORC_CALC.calcular(r.data); }catch(e){ console.warn('cálculo do orçamento', e); }
     const dt=r.savedAt?new Date(Number(r.savedAt)||r.savedAt):null;
     const iso=dt&&!isNaN(dt)?dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0'):'';
     return { iso, ym:iso.slice(0,7), cliente:(info.cliente||'').trim()||'(sem cliente)', obra:(info.obra||'').trim()||'—',
       vendedor:(info.vendedor||'').trim() || (r.savedBy&&(r.savedBy.nome||r.savedBy.email)) || '(sem vendedor)',
       pivos:n(info.numPivos), hectares:n(info.hectares), valor:n(r.valorFinal), margem:fin.margem!=null&&fin.margem!==''?n(fin.margem):null, desconto:n(fin.desconto),
       /* mesma regra do app: aprovado quando data.aprovacao.aprovado = true */
+      /* margem líquida real = (valor final − custo da obra − imposto) ÷ valor final, como no app */
+      custo:c?c.custoTotalObra:null, lucro:c?c.lucro:null, valorCalc:c?c.valorFinal:null,
+      margemLiq:c&&c.valorFinal>0?c.margemReal:null,
       aprovado:!!(ap&&ap.aprovado), aprovadoEm:ap&&ap.em?new Date(Number(ap.em)||ap.em):null, aprovadoPor:ap&&ap.por?(ap.por.nome||ap.por.email||''):'' };
   });
 }
@@ -1543,7 +1778,10 @@ function orcResumo(f){
   const soma=a=>a.reduce((t,x)=>t+x.valor,0);
   const valor=per.reduce((a,x)=>a+x.valor,0), comM=per.filter(x=>x.margem!=null&&x.valor>0);
   const margemMedia=comM.length? comM.reduce((a,x)=>a+x.margem*x.valor,0)/comM.reduce((a,x)=>a+x.valor,0) : null;
-  return { todas:todas.filter(passaSt), per, valor, qtd:per.length, ticket:per.length?valor/per.length:0, pivos:per.reduce((a,x)=>a+x.pivos,0), margemMedia,
+  const comL=per.filter(x=>x.margemLiq!=null);
+  const lucroTot=comL.reduce((a,x)=>a+x.lucro,0), valorL=comL.reduce((a,x)=>a+x.valorCalc,0);
+  const margemLiqMedia=valorL>0? lucroTot/valorL*100 : null;   // ponderada pelo valor (lucro total ÷ valor total)
+  return { todas:todas.filter(passaSt), per, valor, qtd:per.length, ticket:per.length?valor/per.length:0, pivos:per.reduce((a,x)=>a+x.pivos,0), margemMedia, margemLiqMedia, lucroTot,
            qAprov:aprov.length, vAprov:soma(aprov), qAbert:abert.length, vAbert:soma(abert),
            taxa:base.length?aprov.length/base.length:null, taxaValor:soma(base)?soma(aprov)/soma(base):null };
 }
@@ -1552,9 +1790,9 @@ function orcDescricao(f){ if(f.modo==='tudo') return 'todo o histórico'; if(f.m
 RESUMO.orc = ()=>{
   const r=orcResumo({modo:'mes', ym:FILTRO.ym, busca:''});
   return { kpis:[
-    { l:'Orçamentos no mês', v:int(r.qtd), s:int(r.pivos)+' pivô(s)' },
-    { l:'Valor orçado', v:brl0(r.valor) },
-    { l:'Ticket médio', v:brl0(r.ticket) },
+    { l:'Orçamentos no mês', v:int(r.qtd), s:int(r.qAprov)+' aprovado(s)' },
+    { l:'Valor orçado', v:brl0(r.valor), s:'ticket médio '+brl0(r.ticket) },
+    { l:'Margem líquida', v:r.margemLiqMedia==null?'—':num1(r.margemLiqMedia)+'%', s:'média ponderada' },
   ]};
 };
 
@@ -1566,7 +1804,7 @@ RENDER.orc = ()=>{
     tbox({'':'Valor orçado',aberto:'Valor em aberto',aprovado:'Valor aprovado'}[ORC_F.status||''], brl(r.valor), 'ticket médio '+brl0(r.ticket)) +
     tbox('Em aberto', brl0(r.vAbert), int(r.qAbert)+' orçamento(s)', {sm:true}) +
     tbox('Aprovados', brl0(r.vAprov), int(r.qAprov)+' orçamento(s) · '+pct(r.taxa)+' aprovados', {sm:true, barPct:r.taxaValor!=null?r.taxaValor*100:0}) +
-    tbox('Margem nominal média', r.margemMedia==null?'—':num1(r.margemMedia)+'%', 'ponderada pelo valor da proposta', {accent:true});
+    tbox('Margem líquida média', r.margemLiqMedia==null?'—':num1(r.margemLiqMedia)+'%', 'lucro '+brl0(r.lucroTot)+' · nominal '+(r.margemMedia==null?'—':num1(r.margemMedia)+'%'), {accent:true});
 
   /* série mensal: no modo "mês" mostra os 12 meses até o mês escolhido, para dar contexto */
   const q=(ORC_F.busca||'').toLowerCase().trim();
@@ -1590,11 +1828,12 @@ RENDER.orc = ()=>{
   const lista=r.per.slice().sort((a,b)=>b.iso.localeCompare(a.iso));
   document.getElementById('orc-tbl-side').textContent=int(lista.length)+' orçamento(s) · '+FONTES.orc.dados.arquivos+' arquivo(s) de vendedores lidos';
   document.getElementById('orc-tbl').innerHTML = tabela(
-    [{t:'Data'},{t:'Cliente'},{t:'Obra'},{t:'Vendedor'},{t:'Situação'},{t:'Pivôs',r:1},{t:'Valor',r:1},{t:'Margem nom.',r:1}],
+    [{t:'Data'},{t:'Cliente'},{t:'Obra'},{t:'Vendedor'},{t:'Situação'},{t:'Pivôs',r:1},{t:'Valor',r:1},{t:'Custo',r:1},{t:'Margem nom.',r:1},{t:'Margem líquida',r:1}],
     lista.map(x=>[ td(dataBr(x.iso)), td(escapeHtml(x.cliente)), td(escapeHtml(x.obra)), td(escapeHtml(x.vendedor)),
       td(x.aprovado?`<span class="reg" title="${escapeHtml((x.aprovadoPor?'por '+x.aprovadoPor:'')+(x.aprovadoEm?' em '+x.aprovadoEm.toLocaleDateString('pt-BR'):''))}">🔒 Aprovado${x.aprovadoEm?' '+x.aprovadoEm.toLocaleDateString('pt-BR'):''}</span>`:'<span class="reg R3">Em aberto</span>'),
-      tdn(int(x.pivos)), tdn(brl(x.valor)), tdn(x.margem==null?'—':num1(x.margem)+'%') ]),
-    lista.length?[ td('Total'), td(''), td(''), td(''), td(''), tdn(int(r.pivos)), tdn(brl(r.valor)), td('') ]:null);
+      tdn(int(x.pivos)), tdn(brl(x.valor)), tdn(x.custo==null?'—':brl0(x.custo)), tdn(x.margem==null?'—':num1(x.margem)+'%'),
+      tdn(x.margemLiq==null?'—':num1(x.margemLiq)+'%', x.margemLiq!=null && x.margem!=null && x.margemLiq < x.margem-0.05) ]),
+    lista.length?[ td('Total'), td(''), td(''), td(''), td(''), tdn(int(r.pivos)), tdn(brl(r.valor)), tdn(brl0(lista.reduce((a,x)=>a+(x.custo||0),0))), td(''), tdn(r.margemLiqMedia==null?'—':num1(r.margemLiqMedia)+'%') ]:null);
 };
 
 /* controles da aba */
