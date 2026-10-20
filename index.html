@@ -259,7 +259,7 @@ body.modo-tv .embed-wrap iframe{height:calc(100vh - 190px);}
   <section class="pane" id="pane-orcamentos">
     <div class="pane-head">
       <div><h2 class="pane-title">Orçamentos de Montagem</h2><p class="pane-desc">Histórico do app de Orçamentação (todos os vendedores), pela data em que cada orçamento foi salvo.</p></div>
-      <div class="ctl-pane"><select id="o-modo"><option value="mes">Mês</option><option value="ano">Ano</option><option value="tudo">Tudo</option></select><input type="month" id="o-mes"><select id="o-ano"></select><input type="search" id="o-busca" placeholder="Buscar cliente, obra ou vendedor"></div>
+      <div class="ctl-pane"><select id="o-status" title="Situação do orçamento"><option value="">Situação: todos</option><option value="aberto">Em aberto</option><option value="aprovado">Aprovados</option></select><select id="o-modo"><option value="mes">Mês</option><option value="ano">Ano</option><option value="tudo">Tudo</option></select><input type="month" id="o-mes"><select id="o-ano"></select><input type="search" id="o-busca" placeholder="Buscar cliente, obra ou vendedor"></div>
       <span class="fonte-chip" data-chip="orc"></span>
     </div>
     <div id="orc-aviso"></div>
@@ -1517,26 +1517,35 @@ CARREGADORES.orc = async ()=>{
 
 function orcLinhas(){
   return FONTES.orc.dados.registros.map(r=>{
-    const info=r.data.info||{}, fin=r.data.financeiro||{};
+    const info=r.data.info||{}, fin=r.data.financeiro||{}, ap=r.data.aprovacao;
     const dt=r.savedAt?new Date(Number(r.savedAt)||r.savedAt):null;
     const iso=dt&&!isNaN(dt)?dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0'):'';
     return { iso, ym:iso.slice(0,7), cliente:(info.cliente||'').trim()||'(sem cliente)', obra:(info.obra||'').trim()||'—',
       vendedor:(info.vendedor||'').trim() || (r.savedBy&&(r.savedBy.nome||r.savedBy.email)) || '(sem vendedor)',
-      pivos:n(info.numPivos), hectares:n(info.hectares), valor:n(r.valorFinal), margem:fin.margem!=null&&fin.margem!==''?n(fin.margem):null, desconto:n(fin.desconto) };
+      pivos:n(info.numPivos), hectares:n(info.hectares), valor:n(r.valorFinal), margem:fin.margem!=null&&fin.margem!==''?n(fin.margem):null, desconto:n(fin.desconto),
+      /* mesma regra do app: aprovado quando data.aprovacao.aprovado = true */
+      aprovado:!!(ap&&ap.aprovado), aprovadoEm:ap&&ap.em?new Date(Number(ap.em)||ap.em):null, aprovadoPor:ap&&ap.por?(ap.por.nome||ap.por.email||''):'' };
   });
 }
 /* filtro próprio da aba Orçamentos */
-const ORC_F=(function(){ const d=new Date(); return {modo:'ano', ym:d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'), ano:String(d.getFullYear()), busca:''}; })();
+const ORC_F=(function(){ const d=new Date(); return {modo:'ano', ym:d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'), ano:String(d.getFullYear()), busca:'', status:''}; })();
 function orcPassa(iso, f){
   if(f.modo==='tudo') return true; if(!iso) return false;
   return f.modo==='ano' ? iso.slice(0,4)===f.ano : iso.slice(0,7)===f.ym;
 }
 function orcResumo(f){
   const todas=orcLinhas(), q=(f.busca||'').toLowerCase().trim();
-  const per=todas.filter(x=>orcPassa(x.iso,f) && (!q || (x.cliente+' '+x.obra+' '+x.vendedor).toLowerCase().includes(q)));
+  const st=f.status||'';
+  const passaSt=x=> !st || (st==='aprovado'?x.aprovado:!x.aprovado);
+  const base=todas.filter(x=>orcPassa(x.iso,f) && (!q || (x.cliente+' '+x.obra+' '+x.vendedor).toLowerCase().includes(q)));
+  const per=base.filter(passaSt);
+  const aprov=base.filter(x=>x.aprovado), abert=base.filter(x=>!x.aprovado);
+  const soma=a=>a.reduce((t,x)=>t+x.valor,0);
   const valor=per.reduce((a,x)=>a+x.valor,0), comM=per.filter(x=>x.margem!=null&&x.valor>0);
   const margemMedia=comM.length? comM.reduce((a,x)=>a+x.margem*x.valor,0)/comM.reduce((a,x)=>a+x.valor,0) : null;
-  return { todas, per, valor, qtd:per.length, ticket:per.length?valor/per.length:0, pivos:per.reduce((a,x)=>a+x.pivos,0), margemMedia };
+  return { todas:todas.filter(passaSt), per, valor, qtd:per.length, ticket:per.length?valor/per.length:0, pivos:per.reduce((a,x)=>a+x.pivos,0), margemMedia,
+           qAprov:aprov.length, vAprov:soma(aprov), qAbert:abert.length, vAbert:soma(abert),
+           taxa:base.length?aprov.length/base.length:null, taxaValor:soma(base)?soma(aprov)/soma(base):null };
 }
 function orcDescricao(f){ if(f.modo==='tudo') return 'todo o histórico'; if(f.modo==='ano') return 'ano de '+f.ano; const [y,m]=f.ym.split('-'); return MESES_LONGO[+m-1]+'/'+y; }
 
@@ -1551,21 +1560,28 @@ RESUMO.orc = ()=>{
 
 RENDER.orc = ()=>{
   const r=orcResumo(ORC_F);
+  const rotSt={'':'',aberto:' em aberto',aprovado:' aprovados'}[ORC_F.status||''];
   document.getElementById('orc-strip').innerHTML =
-    tbox('Orçamentos', int(r.qtd), orcDescricao(ORC_F)) + tbox('Valor orçado', brl(r.valor)) + tbox('Ticket médio', brl0(r.ticket)) +
-    tbox('Pivôs', int(r.pivos)) + tbox('Margem nominal média', r.margemMedia==null?'—':num1(r.margemMedia)+'%', 'ponderada pelo valor da proposta', {accent:true});
+    tbox('Orçamentos'+rotSt, int(r.qtd), orcDescricao(ORC_F)+' · '+int(r.pivos)+' pivô(s)') +
+    tbox({'':'Valor orçado',aberto:'Valor em aberto',aprovado:'Valor aprovado'}[ORC_F.status||''], brl(r.valor), 'ticket médio '+brl0(r.ticket)) +
+    tbox('Em aberto', brl0(r.vAbert), int(r.qAbert)+' orçamento(s)', {sm:true}) +
+    tbox('Aprovados', brl0(r.vAprov), int(r.qAprov)+' orçamento(s) · '+pct(r.taxa)+' aprovados', {sm:true, barPct:r.taxaValor!=null?r.taxaValor*100:0}) +
+    tbox('Margem nominal média', r.margemMedia==null?'—':num1(r.margemMedia)+'%', 'ponderada pelo valor da proposta', {accent:true});
 
   /* série mensal: no modo "mês" mostra os 12 meses até o mês escolhido, para dar contexto */
-  const porMes={}; r.todas.forEach(x=>{ if(!x.ym) return; (porMes[x.ym]=porMes[x.ym]||{v:0,q:0}); porMes[x.ym].v+=x.valor; porMes[x.ym].q++; });
+  const q=(ORC_F.busca||'').toLowerCase().trim();
+  const porMes={}; r.todas.forEach(x=>{ if(!x.ym) return; if(q && !(x.cliente+' '+x.obra+' '+x.vendedor).toLowerCase().includes(q)) return;
+    const m=(porMes[x.ym]=porMes[x.ym]||{v:0,q:0,va:0,vb:0}); m.v+=x.valor; m.q++; if(x.aprovado) m.va+=x.valor; else m.vb+=x.valor; });
   let meses;
   if(ORC_F.modo==='ano') meses=Array.from({length:12},(_,i)=>ORC_F.ano+'-'+String(i+1).padStart(2,'0'));
   else if(ORC_F.modo==='mes'){ const [y,m]=ORC_F.ym.split('-').map(Number); meses=[]; for(let i=11;i>=0;i--){ const d=new Date(y,m-1-i,1); meses.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')); } }
   else meses=Object.keys(porMes).sort();
   if(meses.length) grafico('c-orc-mes',{ data:{ labels:meses.map(rotuloYm), datasets:[
-      { type:'bar', label:'Valor orçado', data:meses.map(k=>(porMes[k]||{}).v||0), backgroundColor:meses.map(k=>ORC_F.modo==='mes'&&k===ORC_F.ym?COR.ferrugem:COR.verde), borderRadius:3, yAxisID:'y' },
+      ...(ORC_F.status!=='aprovado'?[{ type:'bar', label:'Em aberto', data:meses.map(k=>(porMes[k]||{}).vb||0), backgroundColor:COR.areia, stack:'v', yAxisID:'y' }]:[]),
+      ...(ORC_F.status!=='aberto'?[{ type:'bar', label:'Aprovado', data:meses.map(k=>(porMes[k]||{}).va||0), backgroundColor:COR.verde, stack:'v', yAxisID:'y' }]:[]),
       { type:'line', label:'Quantidade', data:meses.map(k=>(porMes[k]||{}).q||0), borderColor:COR.ouro, backgroundColor:COR.ouro, tension:.25, yAxisID:'q' } ]},
     options:{ interaction:{mode:'index',intersect:false}, plugins:{ legend:{position:'bottom'}, tooltip:{ callbacks:{ label:c=>c.dataset.yAxisID==='q'?' Quantidade: '+c.raw:' Valor: '+brl(c.raw) } } },
-      scales:{ y:eixoBrl, q:{ position:'right', grid:{display:false}, ticks:{precision:0} }, x:semGrade } } });
+      scales:{ y:Object.assign({stacked:true},eixoBrl), q:{ position:'right', grid:{display:false}, ticks:{precision:0} }, x:Object.assign({stacked:true},semGrade) } } });
   else semDados('c-orc-mes');
   const agrupa=(campo)=>{ const o={}; r.per.forEach(x=>{ o[x[campo]]=(o[x[campo]]||0)+x.valor; }); return Object.entries(o).sort((a,b)=>b[1]-a[1]); };
   const pv=agrupa('vendedor'), pc=agrupa('cliente').slice(0,15);
@@ -1574,19 +1590,21 @@ RENDER.orc = ()=>{
   const lista=r.per.slice().sort((a,b)=>b.iso.localeCompare(a.iso));
   document.getElementById('orc-tbl-side').textContent=int(lista.length)+' orçamento(s) · '+FONTES.orc.dados.arquivos+' arquivo(s) de vendedores lidos';
   document.getElementById('orc-tbl').innerHTML = tabela(
-    [{t:'Data'},{t:'Cliente'},{t:'Obra'},{t:'Vendedor'},{t:'Pivôs',r:1},{t:'Valor',r:1},{t:'Margem nom.',r:1}],
-    lista.map(x=>[ td(dataBr(x.iso)), td(escapeHtml(x.cliente)), td(escapeHtml(x.obra)), td(escapeHtml(x.vendedor)), tdn(int(x.pivos)), tdn(brl(x.valor)), tdn(x.margem==null?'—':num1(x.margem)+'%') ]),
-    lista.length?[ td('Total'), td(''), td(''), td(''), tdn(int(r.pivos)), tdn(brl(r.valor)), td('') ]:null);
+    [{t:'Data'},{t:'Cliente'},{t:'Obra'},{t:'Vendedor'},{t:'Situação'},{t:'Pivôs',r:1},{t:'Valor',r:1},{t:'Margem nom.',r:1}],
+    lista.map(x=>[ td(dataBr(x.iso)), td(escapeHtml(x.cliente)), td(escapeHtml(x.obra)), td(escapeHtml(x.vendedor)),
+      td(x.aprovado?`<span class="reg" title="${escapeHtml((x.aprovadoPor?'por '+x.aprovadoPor:'')+(x.aprovadoEm?' em '+x.aprovadoEm.toLocaleDateString('pt-BR'):''))}">🔒 Aprovado${x.aprovadoEm?' '+x.aprovadoEm.toLocaleDateString('pt-BR'):''}</span>`:'<span class="reg R3">Em aberto</span>'),
+      tdn(int(x.pivos)), tdn(brl(x.valor)), tdn(x.margem==null?'—':num1(x.margem)+'%') ]),
+    lista.length?[ td('Total'), td(''), td(''), td(''), td(''), tdn(int(r.pivos)), tdn(brl(r.valor)), td('') ]:null);
 };
 
 /* controles da aba */
 (function(){
-  const sm=document.getElementById('o-modo'), im=document.getElementById('o-mes'), sa=document.getElementById('o-ano'), sb=document.getElementById('o-busca');
+  const sm=document.getElementById('o-modo'), im=document.getElementById('o-mes'), sa=document.getElementById('o-ano'), sb=document.getElementById('o-busca'), ss=document.getElementById('o-status');
   const y=new Date().getFullYear(); sa.innerHTML=Array.from({length:7},(_,i)=>String(y+1-i)).map(a=>`<option>${a}</option>`).join('');
   sm.value=ORC_F.modo; im.value=ORC_F.ym; sa.value=ORC_F.ano;
   const vis=()=>{ im.style.display=ORC_F.modo==='mes'?'':'none'; sa.style.display=ORC_F.modo==='ano'?'':'none'; }; vis();
-  const mudou=()=>{ ORC_F.modo=sm.value; if(im.value) ORC_F.ym=im.value; ORC_F.ano=sa.value; ORC_F.busca=sb.value; vis(); if(FONTES.orc.dados) renderAba('orcamentos'); };
-  [sm,im,sa].forEach(e=>e.addEventListener('change',mudou)); sb.addEventListener('input',mudou);
+  const mudou=()=>{ ORC_F.modo=sm.value; if(im.value) ORC_F.ym=im.value; ORC_F.ano=sa.value; ORC_F.busca=sb.value; ORC_F.status=ss.value; vis(); if(FONTES.orc.dados) renderAba('orcamentos'); };
+  [sm,im,sa,ss].forEach(e=>e.addEventListener('change',mudou)); sb.addEventListener('input',mudou);
 })();
 
 /* =====================================================================
