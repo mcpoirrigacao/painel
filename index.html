@@ -1346,6 +1346,7 @@ function moduloAst(state){
     const cfg=state.config; const chave=(cfg.chaveBaixaInterna||'').trim().toUpperCase(); const fp=(r.formaPagamento||'').toUpperCase();
     if(chave && fp.includes(chave)) return cfg.situacoes.naoAplica;
     if((r.nfse||'').trim() && (r.dataFaturamento||'').trim()) return cfg.situacoes.faturado;
+    if(!cfg.statusFechados.includes(r.status)) return 'Em Andamento'; // como no app: só vira "Pendente" depois de a OS ser fechada
     return cfg.situacoes.pendente;
   }
   function statsFor(filterFn){
@@ -1358,7 +1359,7 @@ function moduloAst(state){
       if(filterFn && !filterFn(r)) return;
       s.totalOS++; s.horas+=n(r.horas); s.valorTotal+=n(r.valor);
       const sit=computeSituacao(r);
-      if(sit===cfg.situacoes.faturado) s.valorFaturado+=n(r.valor); else if(sit===cfg.situacoes.pendente) s.valorPendente+=n(r.valor); else s.valorNaoAplica+=n(r.valor);
+      if(sit===cfg.situacoes.faturado) s.valorFaturado+=n(r.valor); else if(sit===cfg.situacoes.pendente) s.valorPendente+=n(r.valor); else if(sit===cfg.situacoes.naoAplica) s.valorNaoAplica+=n(r.valor);
       s.porStatus[r.status]=(s.porStatus[r.status]||0)+1;
       s.porTipo[r.tipo]=(s.porTipo[r.tipo]||0)+n(r.valor);
       s.porSituacao[sit]=(s.porSituacao[sit]||0)+n(r.valor);
@@ -1401,7 +1402,13 @@ function moduloAst(state){
   function diasAbertaCalc(r){ const ab=(r.dataAbertura||'').trim(); if(!ab) return null; const h=new Date(); return Math.max(0, Math.round((new Date(h.getFullYear(),h.getMonth(),h.getDate())-D(ab))/86400000)); }
   function osAbertasComTempo(){ const cfg=state.config; return Object.values(state.registros).filter(r=>!cfg.statusFechados.includes(r.status)).map(r=>({r, dias:diasAbertaCalc(r)})).filter(x=>x.dias!=null); }
   function tempoAbertoResumo(){ const l=osAbertasComTempo(); if(!l.length) return {qtd:0,maior:null,media:0}; let maior=l[0],soma=0; l.forEach(x=>{ soma+=x.dias; if(x.dias>maior.dias) maior=x; }); return {qtd:l.length, maior, media:soma/l.length}; }
-  return { computeSituacao, statsFor, metaMesCalc, osAbertasComTempo, tempoAbertoResumo, monthBounds };
+  function periodoCalc(){
+    const cfg=state.config; if(!periodoValido()) return {valido:false};
+    const meta=metaTotalPeriodo(null), real=realizadoPeriodoAteHoje(null);
+    return {valido:true, ini:cfg.periodoInicio, fim:cfg.periodoFim, meta, real, falta:meta-real, pct:meta>0?real/meta:null,
+            dias:diasUteisRestantesPeriodo(), metaDia:metaDiariaRedistribuida(null)};
+  }
+  return { computeSituacao, statsFor, metaMesCalc, osAbertasComTempo, tempoAbertoResumo, monthBounds, periodoCalc };
 }
 
 /* No painel, o recorte de período vale pela data de abertura da OS */
@@ -1409,13 +1416,20 @@ function astFiltroPeriodo(){ return r=>passaIso(r.dataAbertura); }
 
 RESUMO.ast = ()=>{
   const st=FONTES.ast.dados, M=moduloAst(st), ref=refDatePainel();
-  const mm=M.metaMesCalc(null, ref), ta=M.tempoAbertoResumo(), s=M.statsFor(null);
-  const p=mm.meta>0?mm.real/mm.meta:null;
-  return { kpis:[
-    { l:'Faturado no mês', v:brl0(mm.real), s:mm.foraDoPeriodo?'fora do período da meta':'meta '+brl0(mm.meta)+' · '+pct(p), bar:p },
-    { l:'Pendente de faturar', v:brl0(s.valorPendente), cls:s.valorPendente>0?'neg':'' },
-    { l:'OS em aberto', v:int(ta.qtd), s:ta.maior?'mais antiga: '+int(ta.maior.dias)+' dias':'' },
-  ]};
+  const mm=M.metaMesCalc(null, ref), pc=M.periodoCalc(), ta=M.tempoAbertoResumo(), s=M.statsFor(null);
+  const p=mm.meta>0?mm.real/mm.meta:null, mes=MESES_LONGO[+ref.slice(5,7)-1];
+  const kpis=[
+    /* mês escolhido */
+    { l:'Faturado em '+mes, v:brl0(mm.real), s:mm.foraDoPeriodo?'fora do período da meta':'meta '+brl0(mm.meta), bar:mm.foraDoPeriodo?null:p },
+    { l:'% da meta do mês', v:mm.foraDoPeriodo?'—':pct(p), cls:p!=null&&p>=1?'pos':'', s:mm.foraDoPeriodo?'':'falta '+brl0(mm.meta-mm.real) },
+    { l:'Pendente de faturar', v:brl0(s.valorPendente), cls:s.valorPendente>0?'neg':'', s:int(ta.qtd)+' OS em aberto'+(ta.maior?' · mais antiga '+int(ta.maior.dias)+' dias':'') },
+  ];
+  /* período total da meta (geral) */
+  if(pc.valido) kpis.push(
+    { l:'Faturado no período', v:brl0(pc.real), s:'meta '+brl0(pc.meta), bar:pc.pct },
+    { l:'% da meta do período', v:pct(pc.pct), cls:pc.pct!=null&&pc.pct>=1?'pos':'', s:'falta '+brl0(pc.falta) },
+    { l:'Meta diária p/ fechar', v:brl0(pc.metaDia), s:int(pc.dias)+' dia(s) útil(eis) até '+dataBr(pc.fim) });
+  return { kpis };
 };
 
 
