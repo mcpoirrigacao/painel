@@ -1297,10 +1297,16 @@ function moduloFat(state){
 
 RESUMO.fat = ()=>{
   const st=FONTES.fat.dados, M=moduloFat(st), c=M.calc();
+  const mes=MESES_LONGO[+c.r.slice(5,7)-1];
   return { kpis:[
-    { l:'Faturado no mês', v:brl0(c.realM), s:'meta '+brl0(c.metaM), bar:c.pctM },
+    /* mês escolhido */
+    { l:'Faturado em '+mes, v:brl0(c.realM), s:'meta '+brl0(c.metaM), bar:c.pctM },
     { l:'% da meta do mês', v:pct(c.pctM), cls:c.pctM!=null&&c.pctM>=1?'pos':'', s:'falta '+brl0(c.faltaM) },
-    { l:'% da meta do período', v:pct(c.pctP), s:brl0(c.realP)+' de '+brl0(c.metaP) },
+    { l:'Meta diária p/ fechar', v:brl0(c.metaDiaNec), s:int(c.duRest)+' dia(s) útil(eis)' },
+    /* período total da meta (geral) */
+    { l:'Faturado no período', v:brl0(c.realP), s:'meta '+brl0(c.metaP), bar:c.pctP },
+    { l:'% da meta do período', v:pct(c.pctP), cls:c.pctP!=null&&c.pctP>=1?'pos':'', s:'falta '+brl0(c.faltaP) },
+    { l:'Meta diária p/ fechar', v:brl0(c.metaDiaPeriodo), s:int(c.duRestP)+' dia(s) útil(eis) até '+dataBr(st.config.fim) },
   ]};
 };
 
