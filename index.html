@@ -182,6 +182,7 @@ body.modo-tv .embed-wrap iframe{height:calc(100vh - 190px);}
 
 .ac-kpis.c3{grid-template-columns:repeat(3,minmax(0,1fr));}
 .ac-kpis.c3 .v{white-space:nowrap;overflow-wrap:normal;font-size:.98rem;}
+.ac-kpis.c3 > :nth-child(n+4){border-top:1px dashed var(--areia-escura);padding-top:8px;}
 
   /* ===== Cabeçalho padrão MAQCAMPO (mesmo do app Peças) ===== */
   .brand-row{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;}
@@ -1788,11 +1789,16 @@ function orcResumo(f){
 function orcDescricao(f){ if(f.modo==='tudo') return 'todo o histórico'; if(f.modo==='ano') return 'ano de '+f.ano; const [y,m]=f.ym.split('-'); return MESES_LONGO[+m-1]+'/'+y; }
 
 RESUMO.orc = ()=>{
-  const r=orcResumo({modo:'mes', ym:FILTRO.ym, busca:''});
+  const g=orcResumo({modo:'mes', ym:FILTRO.ym, busca:'', status:''});
+  const ap=orcResumo({modo:'mes', ym:FILTRO.ym, busca:'', status:'aprovado'});
+  const m=v=>v==null?'—':num1(v)+'%';
   return { kpis:[
-    { l:'Orçamentos no mês', v:int(r.qtd), s:int(r.qAprov)+' aprovado(s)' },
-    { l:'Valor orçado', v:brl0(r.valor), s:'ticket médio '+brl0(r.ticket) },
-    { l:'Margem líquida', v:r.margemLiqMedia==null?'—':num1(r.margemLiqMedia)+'%', s:'média ponderada' },
+    { l:'Orçamentos no mês', v:int(g.qtd), s:'ticket médio '+brlK(g.ticket) },
+    { l:'Valor orçado', v:brlK(g.valor), s:int(g.pivos)+' pivô(s)' },
+    { l:'Margem líquida', v:m(g.margemLiqMedia), s:'geral · ponderada' },
+    { l:'Aprovados', v:int(ap.qtd), cls:'pos', s:pct(g.taxa)+' dos orçamentos', bar:g.taxa },
+    { l:'Valor aprovado', v:brlK(ap.valor), cls:'pos', s:pct(g.taxaValor)+' do valor' },
+    { l:'Margem líq. aprovados', v:m(ap.margemLiqMedia), cls:'pos', s:'ponderada' },
   ]};
 };
 
