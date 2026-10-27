@@ -232,6 +232,7 @@ body.modo-tv .embed-wrap iframe{height:calc(100vh - 190px);}
     <button data-tab="comercial" data-area="crm">Comercial<span class="dot" data-dot="crm"></span></button>
     <button data-tab="crmsam" data-area="sam">CRM SAM<span class="dot" data-dot="sam"></span></button>
     <button data-tab="faturamento" data-area="fat">Peças<span class="dot" data-dot="fat"></span></button>
+    <button data-tab="compras" data-area="cmp">Compras-estoque<span class="dot" data-dot="cmp"></span></button>
     <button data-tab="assistencia" data-area="ast">Assistência Técnica<span class="dot" data-dot="ast"></span></button>
     <button data-tab="obras" data-area="obr">Obras<span class="dot" data-dot="obr"></span></button>
     <button data-tab="orcamentos" data-area="orc">Orçamentos<span class="dot" data-dot="orc"></span></button>
@@ -252,6 +253,7 @@ body.modo-tv .embed-wrap iframe{height:calc(100vh - 190px);}
   <!-- ============================ TELAS DOS APPS (somente visualização) ============================ -->
   <section class="pane" id="pane-comercial"><div class="subnav" id="sub-crm"><div class="sub-itens"></div><div class="sub-dir"><div class="sub-ctl"></div><span class="fonte-chip" data-chip="crm"></span></div></div><div id="crm-aviso" class="sub-aviso"></div><div class="embed-wrap" id="embed-crm"></div></section>
   <section class="pane" id="pane-faturamento"><div class="subnav" id="sub-fat"><div class="sub-itens"></div><div class="sub-dir"><div class="sub-ctl"></div><span class="fonte-chip" data-chip="fat"></span></div></div><div id="fat-aviso" class="sub-aviso"></div><div class="embed-wrap" id="embed-fat"></div></section>
+  <section class="pane" id="pane-compras"><div class="subnav" id="sub-cmp"><div class="sub-itens"></div><div class="sub-dir"><div class="sub-ctl"></div><span class="fonte-chip" data-chip="cmp"></span></div></div><div id="cmp-aviso" class="sub-aviso"></div><div class="embed-wrap" id="embed-cmp"></div></section>
   <section class="pane" id="pane-assistencia"><div class="subnav" id="sub-ast"><div class="sub-itens"></div><div class="sub-dir"><div class="sub-ctl"></div><span class="fonte-chip" data-chip="ast"></span></div></div><div id="ast-aviso" class="sub-aviso"></div><div class="embed-wrap" id="embed-ast"></div></section>
   <section class="pane" id="pane-obras"><div class="subnav" id="sub-obr"><div class="sub-itens"></div><div class="sub-dir"><div class="sub-ctl"></div><span class="fonte-chip" data-chip="obr"></span></div></div><div id="obr-aviso" class="sub-aviso"></div><div class="embed-wrap" id="embed-obr"></div></section>
   <section class="pane" id="pane-crmsam"><div class="subnav" id="sub-sam"><div class="sub-itens"></div><div class="sub-dir"><div class="sub-ctl"></div><span class="fonte-chip" data-chip="sam"></span></div></div><div id="sam-aviso" class="sub-aviso"></div><div class="embed-wrap" id="embed-sam"></div></section>
@@ -340,6 +342,7 @@ const CAMINHOS = {
   orc: { pasta:'Orçamentos Montagem/Historico_montagem', params:'parametros.json', app:'https://mcpoirrigacao.github.io/orc_mcpo/' },
   sam: { link:'https://maqcampoirrigacao.sharepoint.com/:f:/s/MCPOIRRIGACAO/IgBGAtqGFxaXRrJhUQ8lzqOJAd3QQQZ_zeb-i3Ox7QMpddU?e=Q8SRTl',
          pasta:'CRM SAM', dados:'crm_sam_dados.json', app:'https://mcpoirrigacao.github.io/CRMSAM/' },
+  cmp: { pasta:'Compras-estoque', params:'compras_pecas_parametros.json', app:'https://mcpoirrigacao.github.io/compras-estoque/' },
   crm: { ponte:'https://script.google.com/macros/s/AKfycbxi78ZBDdzaIc0e5FDsHCy4my1kQcVaZ96jzylCi8cPg4bW46afvLg2J1fT6IMRQMNX/exec',
          app:'https://mcpoirrigacao.github.io/CRMCOMERCIAL/' },
   /* Pasta "Painel" no SharePoint MCPOIRRIGACAO: o ÚNICO lugar onde o painel grava (usuários e parâmetros). */
@@ -650,7 +653,7 @@ async function alterarPainel(arquivo, alterar){
 }
 
 /* ------------------------------ estado do painel ------------------------------ */
-const PARAMS_PADRAO={ areas:{crm:true,sam:true,fat:true,ast:true,obr:true,orc:true}, autoMin:10, tvSeg:45, crmSenha:'' };
+const PARAMS_PADRAO={ areas:{crm:true,sam:true,fat:true,cmp:true,ast:true,obr:true,orc:true}, autoMin:10, tvSeg:45, crmSenha:'' };
 const PAINEL={ acesso:{emailsAutorizados:[],emailsComuns:[]}, params:JSON.parse(JSON.stringify(PARAMS_PADRAO)), nivel:'', motivo:'', pastaOk:false, erroPasta:'' };
 function normAcesso(d){
   d=d||{}; const low=a=>(a||[]).map(x=>String(x).toLowerCase().trim()).filter(Boolean);
@@ -672,10 +675,11 @@ const FONTES={
   fat:{ nome:'Peças', onde:'SharePoint › Pecas Varejo', estado:'idle', msg:'', quando:null, dados:null },
   ast:{ nome:'Assistência Técnica', onde:'SharePoint › assistencia', estado:'idle', msg:'', quando:null, dados:null },
   obr:{ nome:'Obras de Montagem', onde:'SharePoint › Execução de Montagem', estado:'idle', msg:'', quando:null, dados:null },
+  cmp:{ nome:'Compras-estoque', onde:'SharePoint › Compras-estoque', estado:'idle', msg:'', quando:null, dados:null },
   orc:{ nome:'Orçamentos', onde:'SharePoint › Orçamentos Montagem/Historico_montagem', estado:'idle', msg:'', quando:null, dados:null },
 };
 const CARREGADORES={}, RENDER={}, RESUMO={};
-const ABA_FONTE={ comercial:'crm', crmsam:'sam', faturamento:'fat', assistencia:'ast', obras:'obr', orcamentos:'orc' };
+const ABA_FONTE={ compras:'cmp', comercial:'crm', crmsam:'sam', faturamento:'fat', assistencia:'ast', obras:'obr', orcamentos:'orc' };
 function areaVisivel(k){ return PAINEL.nivel==='admin' || PAINEL.params.areas[k]!==false; }
 
 function marcarFonte(k, estado, msg){
@@ -741,7 +745,7 @@ async function renderAba(tab){
 function renderGeral(){
   const [y,m]=FILTRO.ym.split('-');
   document.getElementById('geral-desc').textContent=`Resumo de ${MESES_LONGO[+m-1]}/${y}. Clique num bloco para abrir a tela completa da área.`;
-  const ordem=[['crm','comercial'],['sam','crmsam'],['fat','faturamento'],['ast','assistencia'],['obr','obras'],['orc','orcamentos']].filter(([k])=>areaVisivel(k));
+  const ordem=[['crm','comercial'],['sam','crmsam'],['fat','faturamento'],['cmp','compras'],['ast','assistencia'],['obr','obras'],['orc','orcamentos']].filter(([k])=>areaVisivel(k));
   document.getElementById('geral-areas').innerHTML=ordem.map(([k,tab])=>{
     const f=FONTES[k];
     let corpo;
@@ -766,7 +770,7 @@ function renderFontes(){
 }
 
 /* ------------------------------ admin: usuários e parâmetros ------------------------------ */
-const NOMES_AREA={crm:'Comercial',sam:'CRM SAM',fat:'Peças',ast:'Assistência Técnica',obr:'Obras',orc:'Orçamentos'};
+const NOMES_AREA={crm:'Comercial',sam:'CRM SAM',fat:'Peças',cmp:'Compras-estoque',ast:'Assistência Técnica',obr:'Obras',orc:'Orçamentos'};
 function renderAdmin(){
   if(PAINEL.nivel!=='admin') return;
   const lst=(arr,tipo)=>arr.length?arr.map((em,i)=>`<div class="user-row"><span>👤 ${escapeHtml(em)}${em===emailAtual()?' <span class="reg">você</span>':''}</span><button class="btn danger small" data-rem="${tipo}" data-i="${i}" type="button">remover</button></div>`).join('')
@@ -944,7 +948,7 @@ document.getElementById('btn-tv').addEventListener('click', ()=>{
   try{ document.documentElement.requestFullscreen(); }catch(e){}
   const seg=Math.max(10, n(PAINEL.params.tvSeg)||45);
   _tvTimer=setInterval(()=>{
-    const abas=['geral','comercial','crmsam','faturamento','assistencia','obras','orcamentos'].filter(t=>t==='geral'||areaVisivel(ABA_FONTE[t]));
+    const abas=['geral','comercial','crmsam','faturamento','compras','assistencia','obras','orcamentos'].filter(t=>t==='geral'||areaVisivel(ABA_FONTE[t]));
     const prox=abas[(abas.indexOf(abaAtiva())+1)%abas.length];
     document.querySelector(`nav.tabs button[data-tab="${prox}"]`).click(); window.scrollTo(0,0);
   }, seg*1000);
@@ -1034,6 +1038,17 @@ const EMBED = {
     init: ``,
     refresh: ``,
   },
+  cmp: {
+    /* Compras-estoque lê planilhas Excel/CSV da pasta; o painel baixa as planilhas e entrega ao quadro */
+    storage: ()=>({}),
+    graph: d=>({ pasta:'Compras-estoque', email:emailAtual(), lista:d.lista, bin:Object.keys(d.binarios),
+      arquivos:{ 'compras_pecas_acesso.json':{ emailsAutorizados:[], emailsComuns:[emailAtual()] }, 'compras_pecas_parametros.json':d.params||{} } }),
+    binarios: d=>d.binarios,
+    css: `.topbar,.period-band,#btn-ms-login,#update-data-btn,#overlay-login,#overlay-negado{display:none!important}`,
+    menu: { sel:'#view-tabs .view-tab', chave:'@texto', ativoClasse:'is-active' },
+    init: ``,
+    refresh: `var b=document.getElementById('update-data-btn'); if(b){ b.disabled=false; b.click(); }`,
+  },
 };
 
 /* roda dentro do quadro, ANTES do código do app */
@@ -1049,7 +1064,8 @@ function embedBoot(){
     Object.keys(P.storage||{}).forEach(function(k){ mem[k]=P.storage[k]; });
     Object.defineProperty(window,'localStorage',{value:fazStorage(mem),configurable:true});
     Object.defineProperty(window,'sessionStorage',{value:fazStorage({}),configurable:true});
-    var G=P.graph, versao=1;
+    var G=P.graph, versao=1, B_atual={}, resolverBin=null;
+    var binarios=new Promise(function(r){ resolverBin=r; });   /* planilhas enviadas pelo painel depois que o quadro abre */
     if(G){
       /* login "de mentira" com o e-mail de quem está no painel */
       var conta={username:G.email,name:G.email,homeAccountId:'painel'};
@@ -1064,10 +1080,20 @@ function embedBoot(){
       window.fetch=function(url,opt){
         opt=opt||{}; url=String(url&&url.url||url); var met=String(opt.method||'GET').toUpperCase();
         if(met!=='GET') return resp(403,{error:{code:'accessDenied',message:'Painel: somente visualização'}});
-        if(/\/shares\/[^/]+\/driveItem/.test(url)) return resp(200,{id:'PASTA',name:G.pasta,folder:{},parentReference:{driveId:'DRIVE'}});
-        var m=url.match(/\/items\/PASTA:\/([^:?]+)(:\/content)?/);
-        if(m){ var f=decodeURIComponent(m[1]); if(!Object.prototype.hasOwnProperty.call(G.arquivos,f)) return resp(404,{});
-          return m[2]?resp(200,G.arquivos[f]):resp(200,{id:f,name:f,eTag:'"painel-'+versao+'"'}); }
+        var pastaObj={id:'PASTA',name:G.pasta,folder:{},webUrl:'',parentReference:{driveId:'DRIVE'}};
+        if(/\/shares\/[^/]+\/driveItem/.test(url)) return resp(200,pastaObj);
+        if(/\/sites\/[^/]+:\/sites\/[^/?]+(\?|$)/.test(url)) return resp(200,{id:'SITE'});
+        if(/\/sites\/SITE\/drive\/root:/.test(url)) return resp(200,pastaObj);
+        if(/\/items\/PASTA\/children/.test(url)) return resp(200,{value:(G.lista||[]).map(function(f){ return Object.assign({file:{}},f); })});
+        var m=url.match(/\/items\/PASTA:\/([^:?]+):?(\/content|:\/content)?/);
+        if(m){ var f=decodeURIComponent(m[1]), conteudo=!!m[2];
+          var meta=(G.lista||[]).filter(function(x){ return x.name===f; })[0];
+          if(G.bin && G.bin.indexOf(f)>=0){   /* planilha: o conteúdo chega do painel por mensagem */
+            if(!conteudo) return resp(200,Object.assign({id:f,file:{}},meta||{name:f}));
+            return binarios.then(function(B){ return B[f] ? new Response(B[f].slice(0),{status:200}) : new Response('{}',{status:404}); });
+          }
+          if(!Object.prototype.hasOwnProperty.call(G.arquivos,f)) return resp(404,{});
+          return conteudo?resp(200,G.arquivos[f]):resp(200,{id:f,name:f,eTag:'"painel-'+versao+'"'}); }
         if(/\/me(\?|$)/.test(url)) return resp(200,{mail:G.email,userPrincipalName:G.email});
         return resp(404,{});
       };
@@ -1083,14 +1109,15 @@ function embedBoot(){
     /* páginas do app → submenu do painel */
     function itensMenu(){ var M=P.menu; if(!M) return [];
       return Array.prototype.slice.call(document.querySelectorAll(M.sel)).filter(function(b){ return getComputedStyle(b).display!=='none'; }); }
+    function chaveDe(b){ var M=P.menu; return M.chave==='@texto' ? b.textContent.replace(/\s+/g,' ').trim() : b.getAttribute(M.chave); }
     var ultimoMenu='';
     function enviarMenu(){
       var M=P.menu; if(!M) return;
       var itens=itensMenu().map(function(b){
         var r=M.rotulo?(b.querySelector(M.rotulo)||b):b, g='';
         if(M.grupo){ var p=b.previousElementSibling; while(p){ if(p.matches(M.grupo)){ g=p.textContent.trim(); break; } p=p.previousElementSibling; } }
-        var ativo=M.ativoAttr ? b.getAttribute(M.ativoAttr)==='true' : b.classList.contains('active');
-        return { id:b.getAttribute(M.chave), rotulo:r.textContent.replace(/\s+/g,' ').trim(), grupo:g, ativo:ativo };
+        var ativo=M.ativoAttr ? b.getAttribute(M.ativoAttr)==='true' : b.classList.contains(M.ativoClasse||'active');
+        return { id:chaveDe(b), rotulo:r.textContent.replace(/\s+/g,' ').trim(), grupo:g, ativo:ativo };
       });
       var ctl=[];
       if(P.controles) Array.prototype.slice.call(document.querySelectorAll(P.controles)).forEach(function(el){
@@ -1111,12 +1138,17 @@ function embedBoot(){
     },80); });
     window.addEventListener('message',function(ev){
       if(ev.source!==window.parent) return; var d=ev.data||{};
+      if(d.tipo==='binarios'){
+        B_atual=d.arquivos||{};
+        if(resolverBin){ resolverBin(B_atual); resolverBin=null; } else { binarios=Promise.resolve(B_atual); }
+        return;
+      }
       if(d.tipo==='atualizar'){
         Object.keys(d.storage||{}).forEach(function(k){ mem[k]=d.storage[k]; }); P.extra=d.extra||{};
-        if(G&&d.graph){ G.arquivos=d.graph.arquivos; versao++; }
+        if(G&&d.graph){ G.arquivos=d.graph.arquivos; G.lista=d.graph.lista||G.lista; G.bin=d.graph.bin||G.bin; versao++; }
         rodar(P.refresh);
       } else if(d.tipo==='ir'){
-        var alvo=itensMenu().filter(function(b){ return b.getAttribute(P.menu.chave)===d.id; })[0];
+        var alvo=itensMenu().filter(function(b){ return chaveDe(b)===d.id; })[0];
         if(alvo){ alvo.click(); window.scrollTo(0,0); var sc=document.querySelector('.main,.content,main'); if(sc) sc.scrollTop=0; }
         agendar();
       } else if(d.tipo==='set'){
@@ -1166,6 +1198,7 @@ async function abrirEmbed(k){
     f.dataset.area=k; f.title=FONTES[k].nome;
     _embedVersao[k]=assinatura(k);
     f.srcdoc=montarSrcdoc(k, html);
+    if(EMBED[k].binarios) f.addEventListener('load', ()=>enviarBinarios(k, f));
     wrap.innerHTML=''; wrap.appendChild(f);
   }catch(e){
     console.error(e);
@@ -1178,7 +1211,11 @@ function atualizarEmbed(k){
   if(!ifr||!FONTES[k].dados) return;
   const sig=assinatura(k); if(sig===_embedVersao[k]) return;
   _embedVersao[k]=sig;
-  try{ ifr.contentWindow.postMessage(Object.assign({tipo:'atualizar'}, payloadEmbed(k)), '*'); }catch(e){ console.error(e); }
+  try{ if(EMBED[k].binarios) enviarBinarios(k, ifr); ifr.contentWindow.postMessage(Object.assign({tipo:'atualizar'}, payloadEmbed(k)), '*'); }catch(e){ console.error(e); }
+}
+function enviarBinarios(k, ifr){
+  const d=FONTES[k].dados; if(!d||!ifr||!ifr.contentWindow) return;
+  try{ ifr.contentWindow.postMessage({tipo:'binarios', arquivos:EMBED[k].binarios(d)}, '*'); }catch(e){ console.error(e); }
 }
 function atualizarTodosEmbeds(){ Object.keys(EMBED).forEach(atualizarEmbed); }
 function quadroDe(k){ const w=document.getElementById('embed-'+k); return w&&w.querySelector('iframe'); }
@@ -2025,6 +2062,57 @@ RESUMO.sam = ()=>{
     { l:'Em negociação', v:brlK(pipe), s:int(ativos.length)+' oportunidade(s)' },
     { l:'Previsão ponderada', v:brlK(pond), s:pipe?int(pond/pipe*100)+'% do valor':'' },
     { l:'Fechado em '+ano, v:brlK(vg), cls:'pos', s:meta?pct(vg/meta)+' da meta de '+brl0(meta):int(ganhos.length)+' contrato(s)', bar:meta?vg/meta:null },
+  ]};
+};
+
+/* =====================================================================
+   COMPRAS-ESTOQUE (app compras-estoque)
+   O app lê planilhas Excel/CSV da pasta "Compras-estoque" do SharePoint e calcula tudo no navegador.
+   O painel lista a pasta, baixa as planilhas configuradas (mesmos nomes do app / compras_pecas_parametros.json)
+   e entrega ao quadro do app, que continua sem acesso à rede.
+   ===================================================================== */
+const CMP_ARQ_PADRAO={ metrica:'Métrica Mensal.xlsx', estoque:'Estoque Histórico.xlsx', inventario:'Inventário_de_Peças.xlsx',
+  armazem:'Armazém.xlsx', compras:'DADOS_BI_COMPRAS.csv', historico:'HITORICO_PC.xlsx', filiais:'Filiais.csv' };
+const _cacheBin={};
+async function baixarBinarioSP(item){
+  const ck='bin:'+item.id;
+  if(_cacheBin[ck] && item.eTag && _cacheBin[ck].etag===item.eTag) return _cacheBin[ck].buf;
+  let r=null;
+  if(item['@microsoft.graph.downloadUrl']){ try{ r=await lerUrl(item['@microsoft.graph.downloadUrl']); }catch(e){ r=null; } }
+  if(!r||!r.ok){ const t=await getGraphToken(); r=await lerUrl(`https://graph.microsoft.com/v1.0/drives/${item.parentReference.driveId}/items/${item.id}/content`,{headers:{Authorization:'Bearer '+t}}); }
+  if(!r.ok) throw new Error('falha ao baixar '+item.name+' ('+r.status+')');
+  const buf=await r.arrayBuffer(); _cacheBin[ck]={etag:item.eTag, buf}; return buf;
+}
+CARREGADORES.cmp = async ()=>{
+  const p=await pastaPorLink(null, CAMINHOS.cmp.pasta);
+  const t=await getGraphToken(); if(!t) throw new Error('Sem token Microsoft.');
+  let url=`https://graph.microsoft.com/v1.0/drives/${p.driveId}/items/${p.itemId}/children?$top=200`, itens=[];
+  while(url){
+    const r=await lerUrl(url,{headers:{Authorization:'Bearer '+t}});
+    if(r.status===403||r.status===401) throw new Error('sem permissão de leitura na pasta Compras-estoque');
+    if(!r.ok) throw new Error('falha ao listar a pasta Compras-estoque ('+r.status+')');
+    const d=await r.json(); itens=itens.concat(d.value||[]); url=d['@odata.nextLink']||null;
+  }
+  itens=itens.filter(x=>x.file);
+  const pr=await lerNaPasta(p, CAMINHOS.cmp.params).catch(()=>({data:null}));
+  const params=pr.data||{};
+  const nomes=Object.assign({}, CMP_ARQ_PADRAO, params.arquivos||{});
+  /* mesma busca do app: nome exato, depois sem acento/maiúsculas */
+  const norm=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
+  const achar=nome=>itens.find(f=>f.name.toLowerCase()===String(nome).trim().toLowerCase()) || itens.find(f=>norm(f.name)===norm(nome));
+  const usados=[...new Set(Object.values(nomes).map(achar).filter(Boolean))];
+  const bufs=await Promise.all(usados.map(it=>baixarBinarioSP(it)));
+  const binarios={}; usados.forEach((it,i)=>binarios[it.name]=bufs[i]);
+  const faltando=Object.entries(nomes).filter(([k,n])=>!achar(n)).map(([k,n])=>n);
+  return { params, binarios, faltando,
+    lista:itens.map(f=>({name:f.name, size:f.size, lastModifiedDateTime:f.lastModifiedDateTime, eTag:f.eTag})) };
+};
+RESUMO.cmp = ()=>{
+  const d=FONTES.cmp.dados, n=Object.keys(d.binarios).length;
+  const ult=d.lista.filter(f=>d.binarios[f.name]).map(f=>f.lastModifiedDateTime).sort().pop();
+  return { msg:'Planilhas de compras e estoque lidas da pasta Compras-estoque.', kpis:[
+    { l:'Planilhas lidas', v:int(n), s:d.faltando.length?'faltando: '+d.faltando.join(', '):'todas encontradas', cls:d.faltando.length?'neg':'' },
+    { l:'Atualizado em', v:ult?new Date(ult).toLocaleDateString('pt-BR'):'—', s:ult?'última planilha alterada às '+new Date(ult).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'' },
   ]};
 };
 

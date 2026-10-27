@@ -2,7 +2,7 @@
 
 **Acesso:** https://mcpoirrigacao.github.io/painel/
 
-Reúne, em modo **visualização**, as telas dos apps internos: CRM Comercial, CRM SAM, Peças,
+Reúne, em modo **visualização**, as telas dos apps internos: CRM Comercial, CRM SAM, Peças, Compras-estoque,
 Assistência Técnica, Obras de Montagem e Orçamentos, mais uma Visão Geral resumida do mês.
 
 ## Como funciona
