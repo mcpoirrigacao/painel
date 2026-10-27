@@ -183,6 +183,16 @@ body.modo-tv .embed-wrap iframe{height:calc(100vh - 190px);}
 .ac-kpis.c3{grid-template-columns:repeat(3,minmax(0,1fr));}
 .ac-kpis.c3 .v{white-space:nowrap;overflow-wrap:normal;font-size:.98rem;}
 .ac-kpis.c3 > :nth-child(n+4){border-top:1px dashed var(--areia-escura);padding-top:8px;}
+/* alinhamento horizontal: rótulo, valor, detalhe e barra de cada coluna ficam na mesma linha (subgrid) */
+.ac-kpis.c3{grid-auto-rows:auto;row-gap:2px;}
+.ac-kpis.c3 > :nth-child(n+4){margin-top:10px;}
+.ac-kpis.c3 > .ac-kpi{display:grid;grid-row:span 4;grid-template-rows:subgrid;row-gap:2px;align-content:start;}
+.ac-kpis.c3 .l{align-self:end;line-height:1.25;}
+.ac-kpis.c3 .v{align-self:start;line-height:1.2;}
+.ac-kpis.c3 .s{align-self:start;line-height:1.3;}
+.ac-kpis.c3 .bar{align-self:center;margin:2px 0;height:5px;}
+.ac-kpis.c3 .bar-vazia{height:0;}
+
 
   /* ===== Cabeçalho padrão MAQCAMPO (mesmo do app Peças) ===== */
   .brand-row{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;}
@@ -754,7 +764,7 @@ function renderGeral(){
     let corpo;
     if(f.dados){
       let r; try{ r=RESUMO[k](); }catch(e){ console.error(e); r={kpis:[], msg:'Erro ao calcular: '+e.message}; }
-      corpo=(r.msg?`<div class="ac-msg">${escapeHtml(r.msg)}</div>`:'')+`<div class="ac-kpis c3">${r.kpis.map(x=>`<div class="ac-kpi"><div class="l">${x.l}</div><div class="v ${x.cls||''}">${x.v}</div>${x.s?`<div class="s">${x.s}</div>`:''}${x.bar!=null?`<div class="bar"><span style="width:${Math.max(0,Math.min(100,(x.bar||0)*100))}%"></span></div>`:''}</div>`).join('')}</div>`;
+      corpo=(r.msg?`<div class="ac-msg">${escapeHtml(r.msg)}</div>`:'')+`<div class="ac-kpis c3">${r.kpis.map(x=>`<div class="ac-kpi"><div class="l">${x.l}</div><div class="v ${x.cls||''}">${x.v}</div>${x.bar!=null?`<div class="bar"><span style="width:${Math.max(0,Math.min(100,(x.bar||0)*100))}%"></span></div>`:'<div class="bar-vazia"></div>'}<div class="s">${x.s||''}</div></div>`).join('')}</div>`;
     } else if(f.estado==='erro') corpo=`<div class="ac-msg erro">⚠ ${escapeHtml(f.msg)}</div>`;
     else if(f.estado==='semsenha') corpo=`<div class="ac-msg">🔑 Falta a senha da planilha.</div>`;
     else corpo=`<div class="ac-msg">⏳ Lendo…</div>`;
