@@ -245,7 +245,7 @@ body.modo-tv .embed-wrap iframe{height:calc(100vh - 190px);}
     <button data-tab="compras" data-area="cmp">Compras-estoque<span class="dot" data-dot="cmp"></span></button>
     <button data-tab="assistencia" data-area="ast">Assistência Técnica<span class="dot" data-dot="ast"></span></button>
     <button data-tab="obras" data-area="obr">Obras<span class="dot" data-dot="obr"></span></button>
-    <button data-tab="orcamentos" data-area="orc">Orçamentos<span class="dot" data-dot="orc"></span></button>
+    <button data-tab="orcamentos" data-area="orc">Orçamentos Montagem<span class="dot" data-dot="orc"></span></button>
     <button data-tab="fontes" class="somente-admin">⚙ Fontes e Parâmetros</button>
   </nav>
 </header>
@@ -271,7 +271,7 @@ body.modo-tv .embed-wrap iframe{height:calc(100vh - 190px);}
   <!-- ============================ ORÇAMENTOS ============================ -->
   <section class="pane" id="pane-orcamentos">
     <div class="pane-head">
-      <div><h2 class="pane-title">Orçamentos de Montagem</h2><p class="pane-desc">Histórico do app de Orçamentação (todos os vendedores), pela data em que cada orçamento foi salvo.</p></div>
+      <div><h2 class="pane-title">Orçamentos Montagem</h2><p class="pane-desc">Histórico do app de Orçamentação (todos os vendedores), pela data em que cada orçamento foi salvo.</p></div>
       <div class="ctl-pane"><select id="o-status" title="Situação do orçamento"><option value="">Situação: todos</option><option value="aberto">Em aberto</option><option value="aprovado">Aprovados</option></select><select id="o-modo"><option value="mes">Mês</option><option value="ano">Ano</option><option value="tudo">Tudo</option></select><input type="month" id="o-mes"><select id="o-ano"></select><input type="search" id="o-busca" placeholder="Buscar cliente, obra ou vendedor"></div>
       <span class="fonte-chip" data-chip="orc"></span>
     </div>
@@ -686,7 +686,7 @@ const FONTES={
   ast:{ nome:'Assistência Técnica', onde:'SharePoint › assistencia', estado:'idle', msg:'', quando:null, dados:null },
   obr:{ nome:'Obras de Montagem', onde:'SharePoint › Execução de Montagem', estado:'idle', msg:'', quando:null, dados:null },
   cmp:{ nome:'Compras-estoque', onde:'SharePoint › Compras-estoque', estado:'idle', msg:'', quando:null, dados:null },
-  orc:{ nome:'Orçamentos', onde:'SharePoint › Orçamentos Montagem/Historico_montagem', estado:'idle', msg:'', quando:null, dados:null },
+  orc:{ nome:'Orçamentos Montagem', onde:'SharePoint › Orçamentos Montagem/Historico_montagem', estado:'idle', msg:'', quando:null, dados:null },
 };
 const CARREGADORES={}, RENDER={}, RESUMO={};
 const ABA_FONTE={ compras:'cmp', comercial:'crm', crmsam:'sam', faturamento:'fat', assistencia:'ast', obras:'obr', orcamentos:'orc' };
@@ -783,7 +783,7 @@ function renderFontes(){
 }
 
 /* ------------------------------ admin: usuários e parâmetros ------------------------------ */
-const NOMES_AREA={crm:'Comercial',sam:'CRM SAM',fat:'Peças',cmp:'Compras-estoque',ast:'Assistência Técnica',obr:'Obras',orc:'Orçamentos'};
+const NOMES_AREA={crm:'Comercial',sam:'CRM SAM',fat:'Peças',cmp:'Compras-estoque',ast:'Assistência Técnica',obr:'Obras',orc:'Orçamentos Montagem'};
 function renderAdmin(){
   if(PAINEL.nivel!=='admin') return;
   const lst=(arr,tipo)=>arr.length?arr.map((em,i)=>`<div class="user-row"><span>👤 ${escapeHtml(em)}${em===emailAtual()?' <span class="reg">você</span>':''}</span><button class="btn danger small" data-rem="${tipo}" data-i="${i}" type="button">remover</button></div>`).join('')
@@ -853,7 +853,7 @@ async function adminEmAlgumApp(){
     ['Peças', ()=>lerPrimeiroSP(CAMINHOS.fat.acesso), d=>low(d.emailsAutorizados)],
     ['Assistência', ()=>lerJsonSP(CAMINHOS.ast.pasta, CAMINHOS.ast.acesso), d=>low(d.emailsAutorizados)],
     ['Obras', ()=>lerJsonSP(CAMINHOS.obr.pasta, CAMINHOS.obr.acesso), d=>low(d.emailsAutorizados)],
-    ['Orçamentos', ()=>lerJsonSP(CAMINHOS.orc.pasta, CAMINHOS.orc.params), d=>low(d.emailsAutorizados).concat(low(d.emailsGestores))],
+    ['Orçamentos Montagem', ()=>lerJsonSP(CAMINHOS.orc.pasta, CAMINHOS.orc.params), d=>low(d.emailsAutorizados).concat(low(d.emailsGestores))],
   ];
   const res=await Promise.all(fontes.map(async([nome,ler,lista])=>{ try{ const r=await ler(); return r.data&&lista(r.data).includes(e)?nome:null; }catch(err){ return null; } }));
   _adminEmAlgumApp=res.filter(Boolean); return _adminEmAlgumApp;
