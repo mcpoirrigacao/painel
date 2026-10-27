@@ -703,7 +703,10 @@ async function carregarFonte(k){
   try{
     const d=await CARREGADORES[k]();
     if(d===null){ marcarFonte(k,'semsenha'); FONTES[k].dados=null; return; }
-    FONTES[k].dados=d; marcarFonte(k,'ok');
+    const resumoAnterior=FONTES[k].dados&&FONTES[k].dados.resumo;
+    FONTES[k].dados=d; if(resumoAnterior && !d.resumo) d.resumo=resumoAnterior;
+    marcarFonte(k,'ok');
+    if(EMBED[k] && EMBED[k].patch) calcularResumoEmbed(k);
   }catch(e){ console.error('['+k+']',e); marcarFonte(k,'erro', e&&e.message||String(e)); }
 }
 async function carregarTudo(silencioso){
@@ -1048,6 +1051,28 @@ const EMBED = {
     menu: { sel:'#view-tabs .view-tab', chave:'@texto', ativoClasse:'is-active' },
     init: ``,
     refresh: `var b=document.getElementById('update-data-btn'); if(b){ b.disabled=false; b.click(); }`,
+    /* gancho dentro do app: sempre que ele monta a base (setData), manda ao painel os totais que o card usa,
+       com as mesmas contas das abas Faturamento e Inventário (todas as filiais e armazéns) */
+    patch: html=>html.replace('function setData(d){', `function __painelResumo(){
+  try{
+    if(!DATA) return;
+    var r={meses:{}, inv:null};
+    if(DATA.fat && DATA.fat.grid){
+      var g=DATA.fat.grid.grid||{}, sel=filterDef('fat','filial').options().map(function(o){ return o.value; });
+      (DATA.fat.grid.months||[]).forEach(function(m){
+        var v=0,i=0,c=0; sel.forEach(function(f){ var d=g[f]&&g[f][m]; if(d){ v+=d.v; i+=d.i; c+=d.c; } });
+        r.meses[m]={v:v,i:i,c:c};
+      });
+    }
+    if(DATA.invPecas){
+      var selI=filterDef('inv','filial').options().map(function(o){ return o.value; });
+      r.inv=selI.map(function(fil){ var b=DATA.invPecas.by_filial.filter(function(f){ return f.filial===fil; })[0]||{valor:0}; return b.valor; })
+        .filter(function(v){ return v>=1; }).reduce(function(a,b){ return a+b; },0);
+    }
+    window.parent.postMessage({tipo:'resumo', resumo:r},'*');
+  }catch(e){ console.error('[painel] resumo', e); }
+}
+function setData(d){ setTimeout(__painelResumo,0);`),
   },
 };
 
@@ -1174,6 +1199,7 @@ function payloadEmbed(k){
 function montarSrcdoc(k, html){
   const cfg=EMBED[k];
   const payload=Object.assign(payloadEmbed(k), { init:cfg.init, refresh:cfg.refresh, menu:cfg.menu||null, controles:cfg.controles||null });
+  if(cfg.patch) html=cfg.patch(html);
   const injeta=`<meta http-equiv="Content-Security-Policy" content="${EMBED_CSP}">`+
     `<script>window.__PAINEL=${jsonSeguro(payload)};(${embedBoot.toString()})();<\/script>`+
     `<style>${EMBED_CSS_COMUM}\n${cfg.css||''}</style>`;
@@ -1217,14 +1243,39 @@ function enviarBinarios(k, ifr){
   const d=FONTES[k].dados; if(!d||!ifr||!ifr.contentWindow) return;
   try{ ifr.contentWindow.postMessage({tipo:'binarios', arquivos:EMBED[k].binarios(d)}, '*'); }catch(e){ console.error(e); }
 }
+/* Card da Visão Geral do Compras-estoque: o app calcula os totais (mesma leitura das planilhas)
+   num quadro invisível, mesmo que a aba ainda não tenha sido aberta. */
+const _calcSig={};
+async function calcularResumoEmbed(k){
+  if(!FONTES[k].dados || !EMBED[k].patch) return;
+  const sig=assinatura(k); if(_calcSig[k]===sig && FONTES[k].dados.resumo) return;
+  _calcSig[k]=sig;
+  document.querySelectorAll(`iframe[data-calc][data-area="${k}"]`).forEach(f=>f.remove());
+  try{
+    const html=await htmlDoApp(k);
+    const f=document.createElement('iframe');
+    f.setAttribute('sandbox','allow-scripts'); f.setAttribute('aria-hidden','true'); f.tabIndex=-1;
+    f.dataset.area=k; f.dataset.calc='1';
+    f.style.cssText='position:fixed;left:-12000px;top:0;width:1200px;height:800px;visibility:hidden;border:0;';
+    f.srcdoc=montarSrcdoc(k, html);
+    f.addEventListener('load', ()=>enviarBinarios(k, f));
+    document.body.appendChild(f);
+    setTimeout(()=>{ if(f.isConnected) f.remove(); }, 120000);   /* não fica pendurado se algo der errado */
+  }catch(e){ console.warn('resumo '+k, e); }
+}
 function atualizarTodosEmbeds(){ Object.keys(EMBED).forEach(atualizarEmbed); }
 function quadroDe(k){ const w=document.getElementById('embed-'+k); return w&&w.querySelector('iframe'); }
 
 /* ---------------- submenu do painel (páginas do app) ---------------- */
 window.addEventListener('message', ev=>{
-  const ifr=[...document.querySelectorAll('.embed-wrap iframe')].find(f=>f.contentWindow===ev.source);
+  const ifr=[...document.querySelectorAll('iframe[data-area]')].find(f=>f.contentWindow===ev.source);
   if(!ifr) return; const k=ifr.dataset.area, d=ev.data||{};
+  if(ifr.dataset.calc){   /* quadro invisível só para calcular o resumo do card */
+    if(d.tipo==='resumo' && FONTES[k] && FONTES[k].dados){ FONTES[k].dados.resumo=d.resumo; if(abaAtiva()==='geral') renderGeral(); setTimeout(()=>ifr.remove(), 500); }
+    return;
+  }
   if(d.tipo==='menu'){ _menus[k]={itens:d.itens||[], controles:d.controles||[]}; renderSubmenu(k); }
+  if(d.tipo==='resumo' && FONTES[k] && FONTES[k].dados){ FONTES[k].dados.resumo=d.resumo; if(abaAtiva()==='geral') renderGeral(); }
 });
 function renderSubmenu(k){
   const bar=document.getElementById('sub-'+k); if(!bar) return;
@@ -2108,11 +2159,20 @@ CARREGADORES.cmp = async ()=>{
     lista:itens.map(f=>({name:f.name, size:f.size, lastModifiedDateTime:f.lastModifiedDateTime, eTag:f.eTag})) };
 };
 RESUMO.cmp = ()=>{
-  const d=FONTES.cmp.dados, n=Object.keys(d.binarios).length;
-  const ult=d.lista.filter(f=>d.binarios[f.name]).map(f=>f.lastModifiedDateTime).sort().pop();
-  return { msg:'Planilhas de compras e estoque lidas da pasta Compras-estoque.', kpis:[
-    { l:'Planilhas lidas', v:int(n), s:d.faltando.length?'faltando: '+d.faltando.join(', '):'todas encontradas', cls:d.faltando.length?'neg':'' },
-    { l:'Atualizado em', v:ult?new Date(ult).toLocaleDateString('pt-BR'):'—', s:ult?'última planilha alterada às '+new Date(ult).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'' },
+  const d=FONTES.cmp.dados, R=d.resumo;
+  if(!R) return { msg: d.faltando.length?'Faltando na pasta: '+d.faltando.join(', '):'Calculando com as regras do app…', kpis:[] };
+  const ym=FILTRO.ym, ano=ym.slice(0,4), mes=MESES_LONGO[+ym.slice(5,7)-1];
+  const soma=ms=>ms.reduce((t,m)=>{ const x=R.meses[m]; if(x){ t.v+=x.v; t.i+=x.i; t.c+=x.c; } return t; },{v:0,i:0,c:0});
+  const calc=t=>{ const vl=t.v-t.i, lb=vl-t.c; return {vl, lb, pct:vl?lb/vl:null}; };   // mesma conta da aba Faturamento do app
+  const m=calc(soma([ym])), a=calc(soma(Object.keys(R.meses).filter(k=>k.slice(0,4)===ano)));
+  const temMes=!!R.meses[ym];
+  return { kpis:[
+    { l:'Venda líquida · '+mes, v:temMes?brl0(m.vl):'—', s:temMes?'':'mês sem dados na planilha' },
+    { l:'Lucro bruto · '+mes, v:temMes?brl0(m.lb):'—', cls:m.lb<0?'neg':'' },
+    { l:'% LB · '+mes, v:temMes?pct(m.pct):'—' },
+    { l:'Valor do inventário', v:R.inv==null?'—':brl0(R.inv), s:'todas as filiais e armazéns' },
+    { l:'Venda líquida · '+ano, v:brl0(a.vl), s:'lucro bruto '+brl0(a.lb) },
+    { l:'% LB · '+ano, v:pct(a.pct) },
   ]};
 };
 
