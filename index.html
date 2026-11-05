@@ -1014,7 +1014,23 @@ const EMBED = {
     css: CSS_SEM_CABECALHO+` #btn-add-os,[data-edit-os],#btn-salvar-os,#btn-excluir-os,#btn-reset{display:none!important}`,
     menu: MENU_ABAS, controles: CONTROLES_CABECALHO,
     init: `nivelAcesso=function(){return 'comum'}; applyAccess(); renderAll();`,
-    refresh: `state=withDefaults(JSON.parse(localStorage.getItem('maqcampo-assistencia-tecnica-v1'))); renderAll();`,
+    refresh: `state=withDefaults(JSON.parse(localStorage.getItem('maqcampo-assistencia-tecnica-v1'))); renderAll(); if(window.__painelResumoAst) __painelResumoAst();`,
+    /* o card da Visão Geral usa as contas do próprio app (meta do mês, meta geral do período, pendente, OS em aberto),
+       inclusive o Faturamento Histórico de Parâmetros — nada é recopiado no painel */
+    patch: html=>{ const i=html.lastIndexOf('</body>'); const js=`<script>
+window.__painelResumoAst=function(){ try{
+  var r={meses:{}, periodo:null, pendente:0, abertas:{qtd:0,maiorDias:null}};
+  if(periodoValido()){
+    mesesDoPeriodo().forEach(function(m){ var x=metaMesCalc(null,m.mA); r.meses[m.mA.slice(0,7)]={meta:x.meta, real:x.real}; });
+    r.periodo={ini:state.config.periodoInicio, fim:state.config.periodoFim, meta:metaTotalPeriodo(null), real:realizadoPeriodoAteHoje(null),
+               dias:diasUteisRestantesPeriodo(), metaDia:metaDiariaRedistribuida(null)};
+  }
+  r.pendente=statsFor(null).valorPendente;
+  var ta=tempoAbertoResumo(); r.abertas={qtd:ta.qtd, maiorDias:ta.maior?ta.maior.dias:null};
+  window.parent.postMessage({tipo:'resumo', resumo:r},'*');
+}catch(e){ console.error('[painel] resumo', e); } };
+window.addEventListener('load',function(){ setTimeout(window.__painelResumoAst,300); });
+<\/script>`; return i>=0 ? html.slice(0,i)+js+html.slice(i) : html+js; },
   },
   obr: {
     storage: d=>({ 'maqcampo-mcpo-v3': JSON.stringify({ clientes:d.clientes, obras:d.obras, lancamentos:d.lancamentos, tecnicos:d.tecnicos, alocacoes:d.alocacoes, ultimaSync:new Date().toISOString() }) }),
@@ -1513,20 +1529,22 @@ function moduloAst(state){
 function astFiltroPeriodo(){ return r=>passaIso(r.dataAbertura); }
 
 RESUMO.ast = ()=>{
-  const st=FONTES.ast.dados, M=moduloAst(st), ref=refDatePainel();
-  const mm=M.metaMesCalc(null, ref), pc=M.periodoCalc(), ta=M.tempoAbertoResumo(), s=M.statsFor(null);
-  const p=mm.meta>0?mm.real/mm.meta:null, mes=MESES_LONGO[+ref.slice(5,7)-1];
+  const R=FONTES.ast.dados.resumo;
+  if(!R) return { msg:'Calculando com as regras do app…', kpis:[] };
+  const ym=FILTRO.ym, mes=MESES_LONGO[+ym.slice(5,7)-1], mm=R.meses[ym];
+  const p=mm&&mm.meta>0?mm.real/mm.meta:null;
   const kpis=[
-    /* mês escolhido */
-    { l:'Faturado em '+mes, v:brl0(mm.real), s:mm.foraDoPeriodo?'fora do período da meta':'meta '+brl0(mm.meta), bar:mm.foraDoPeriodo?null:p },
-    { l:'% da meta do mês', v:mm.foraDoPeriodo?'—':pct(p), cls:p!=null&&p>=1?'pos':'', s:mm.foraDoPeriodo?'':'falta '+brl0(mm.meta-mm.real) },
-    { l:'Pendente de faturar', v:brl0(s.valorPendente), cls:s.valorPendente>0?'neg':'', s:int(ta.qtd)+' OS em aberto'+(ta.maior?' · mais antiga '+int(ta.maior.dias)+' dias':'') },
+    /* mês escolhido (Meta do Mês — todas as regiões, no app) */
+    { l:'Faturado em '+mes, v:mm?brl0(mm.real):'—', s:mm?'meta '+brl0(mm.meta):'fora do período da meta', bar:mm?p:null },
+    { l:'% da meta do mês', v:mm?pct(p):'—', cls:p!=null&&p>=1?'pos':'', s:mm?'falta '+brl0(mm.meta-mm.real):'' },
+    { l:'Pendente de faturar', v:brl0(R.pendente), cls:R.pendente>0?'neg':'', s:int(R.abertas.qtd)+' OS em aberto'+(R.abertas.maiorDias!=null?' · mais antiga '+int(R.abertas.maiorDias)+' dias':'') },
   ];
-  /* período total da meta (geral) */
-  if(pc.valido) kpis.push(
-    { l:'Faturado no período', v:brl0(pc.real), s:'meta '+brl0(pc.meta), bar:pc.pct },
-    { l:'% da meta do período', v:pct(pc.pct), cls:pc.pct!=null&&pc.pct>=1?'pos':'', s:'falta '+brl0(pc.falta) },
-    { l:'Meta diária p/ fechar', v:brl0(pc.metaDia), s:int(pc.dias)+' dia(s) útil(eis) até '+dataBr(pc.fim) });
+  /* Meta Geral do Período — todas as regiões, período completo de Parâmetros */
+  const pc=R.periodo;
+  if(pc){ const pp=pc.meta>0?pc.real/pc.meta:null; kpis.push(
+    { l:'Faturado no período', v:brl0(pc.real), s:'meta '+brl0(pc.meta), bar:pp },
+    { l:'% da meta do período', v:pct(pp), cls:pp!=null&&pp>=1?'pos':'', s:'falta '+brl0(pc.meta-pc.real) },
+    { l:'Meta diária p/ fechar', v:brl0(pc.metaDia), s:int(pc.dias)+' dia(s) útil(eis) até '+dataBr(pc.fim) }); }
   return { kpis };
 };
 
