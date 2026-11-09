@@ -241,7 +241,7 @@ body.modo-tv .embed-wrap iframe{height:calc(100vh - 190px);}
     <button data-tab="geral" class="active">Visão Geral</button>
     <button data-tab="comercial" data-area="crm">Comercial<span class="dot" data-dot="crm"></span></button>
     <button data-tab="crmsam" data-area="sam">CRM SAM<span class="dot" data-dot="sam"></span></button>
-    <button data-tab="faturamento" data-area="fat">Peças<span class="dot" data-dot="fat"></span></button>
+    <button data-tab="faturamento" data-area="fat">Gestão Balcão - Peças<span class="dot" data-dot="fat"></span></button>
     <button data-tab="compras" data-area="cmp">Compras-estoque<span class="dot" data-dot="cmp"></span></button>
     <button data-tab="assistencia" data-area="ast">Assistência Técnica<span class="dot" data-dot="ast"></span></button>
     <button data-tab="obras" data-area="obr">Obras<span class="dot" data-dot="obr"></span></button>
@@ -682,7 +682,7 @@ function normParams(d){
 const FONTES={
   crm:{ nome:'CRM Comercial', onde:'Planilha Google (Apps Script)', estado:'idle', msg:'', quando:null, dados:null },
   sam:{ nome:'CRM SAM', onde:'SharePoint › CRM SAM', estado:'idle', msg:'', quando:null, dados:null },
-  fat:{ nome:'Peças', onde:'SharePoint › Pecas Varejo', estado:'idle', msg:'', quando:null, dados:null },
+  fat:{ nome:'Gestão Balcão - Peças', onde:'SharePoint › Pecas Varejo', estado:'idle', msg:'', quando:null, dados:null },
   ast:{ nome:'Assistência Técnica', onde:'SharePoint › assistencia', estado:'idle', msg:'', quando:null, dados:null },
   obr:{ nome:'Obras de Montagem', onde:'SharePoint › Execução de Montagem', estado:'idle', msg:'', quando:null, dados:null },
   cmp:{ nome:'Compras-estoque', onde:'SharePoint › Compras-estoque', estado:'idle', msg:'', quando:null, dados:null },
@@ -783,7 +783,7 @@ function renderFontes(){
 }
 
 /* ------------------------------ admin: usuários e parâmetros ------------------------------ */
-const NOMES_AREA={crm:'Comercial',sam:'CRM SAM',fat:'Peças',cmp:'Compras-estoque',ast:'Assistência Técnica',obr:'Obras',orc:'Orçamentos Montagem'};
+const NOMES_AREA={crm:'Comercial',sam:'CRM SAM',fat:'Gestão Balcão - Peças',cmp:'Compras-estoque',ast:'Assistência Técnica',obr:'Obras',orc:'Orçamentos Montagem'};
 function renderAdmin(){
   if(PAINEL.nivel!=='admin') return;
   const lst=(arr,tipo)=>arr.length?arr.map((em,i)=>`<div class="user-row"><span>👤 ${escapeHtml(em)}${em===emailAtual()?' <span class="reg">você</span>':''}</span><button class="btn danger small" data-rem="${tipo}" data-i="${i}" type="button">remover</button></div>`).join('')
@@ -850,7 +850,7 @@ async function adminEmAlgumApp(){
   if(_adminEmAlgumApp) return _adminEmAlgumApp;
   const e=emailAtual(), low=a=>(a||[]).map(x=>String(x).toLowerCase().trim());
   const fontes=[
-    ['Peças', ()=>lerPrimeiroSP(CAMINHOS.fat.acesso), d=>low(d.emailsAutorizados)],
+    ['Gestão Balcão - Peças', ()=>lerPrimeiroSP(CAMINHOS.fat.acesso), d=>low(d.emailsAutorizados)],
     ['Assistência', ()=>lerJsonSP(CAMINHOS.ast.pasta, CAMINHOS.ast.acesso), d=>low(d.emailsAutorizados)],
     ['Obras', ()=>lerJsonSP(CAMINHOS.obr.pasta, CAMINHOS.obr.acesso), d=>low(d.emailsAutorizados)],
     ['Orçamentos Montagem', ()=>lerJsonSP(CAMINHOS.orc.pasta, CAMINHOS.orc.params), d=>low(d.emailsAutorizados).concat(low(d.emailsGestores))],
@@ -1341,7 +1341,7 @@ async function lerPrimeiroSP(cands){
 }
 CARREGADORES.fat = async ()=>{
   const r=await lerPrimeiroSP(CAMINHOS.fat.dados);
-  if(r.missing||!r.data||!r.data.config||!r.data.lanc) throw new Error('arquivo de dados de Peças não encontrado (pasta Pecas Varejo)');
+  if(r.missing||!r.data||!r.data.config||!r.data.lanc) throw new Error('arquivo de dados de Gestão Balcão - Peças não encontrado (pasta Pecas Varejo)');
   FONTES.fat.onde='SharePoint › '+r.pasta+' › '+r.arq;
   const s=JSON.parse(JSON.stringify(r.data));
   s.config.feriados=s.config.feriados||[]; s.config.lojas=s.config.lojas||[];
