@@ -1041,7 +1041,25 @@ window.addEventListener('load',function(){ setTimeout(window.__painelResumoAst,3
     menu: MENU_ABAS, controles: CONTROLES_CABECALHO,
     init: `nivelAcesso=function(){return 'comum'}; if(window.__PAINEL.extra.listas){ listasConfig=Object.assign({},listasConfig,window.__PAINEL.extra.listas); } applyAccess(); renderAll();`,
     refresh: `var c=JSON.parse(localStorage.getItem('maqcampo-mcpo-v3')); clientes=c.clientes||[]; obras=c.obras||[]; lancamentos=c.lancamentos||[]; tecnicos=c.tecnicos||[]; alocacoes=c.alocacoes||[];
-      if(window.__PAINEL.extra.listas){ listasConfig=Object.assign({},listasConfig,window.__PAINEL.extra.listas); } renderAll();`,
+      if(window.__PAINEL.extra.listas){ listasConfig=Object.assign({},listasConfig,window.__PAINEL.extra.listas); } renderAll(); if(window.__painelResumoObr) __painelResumoObr();`,
+    /* card da Visão Geral: margens orçada × executada (média ponderada) e resultado geral das obras que vieram de orçamento,
+       calculados pelas funções do próprio app (margemExecutadaObra, somaPorTipo) */
+    patch: html=>{ const i=html.lastIndexOf('</body>'); const js=`<script>
+window.__painelResumoObr=function(){ try{
+  var r={qtd:0, valorProposta:0, margemOrcValor:0, negociado:0, custo:0, margemExecValor:0};
+  obras.filter(function(o){ return o.margemOrcada; }).forEach(function(o){
+    var lancs=lancamentos.filter(function(l){ return l.obraId===o.id; });
+    var e=margemExecutadaObra(o,lancs);
+    r.qtd++; r.valorProposta+=n(o.margemOrcada.valorProposta); r.margemOrcValor+=n(o.margemOrcada.margemValor);
+    r.negociado+=e.negociado; r.custo+=e.custo; r.margemExecValor+=e.margemValor;
+  });
+  r.margemOrcPct=r.valorProposta>0?r.margemOrcValor/r.valorProposta*100:null;
+  r.margemExecPct=r.negociado>0?r.margemExecValor/r.negociado*100:null;
+  r.resultado=r.negociado-r.custo;
+  window.parent.postMessage({tipo:'resumo', resumo:r},'*');
+}catch(e){ console.error('[painel] resumo obras', e); } };
+window.addEventListener('load',function(){ setTimeout(window.__painelResumoObr,300); });
+<\/script>`; return i>=0 ? html.slice(0,i)+js+html.slice(i) : html+js; },
   },
   crm: {
     storage: ()=>({}),
@@ -1266,7 +1284,7 @@ function atualizarEmbed(k){
   try{ if(EMBED[k].binarios) enviarBinarios(k, ifr); ifr.contentWindow.postMessage(Object.assign({tipo:'atualizar'}, payloadEmbed(k)), '*'); }catch(e){ console.error(e); }
 }
 function enviarBinarios(k, ifr){
-  const d=FONTES[k].dados; if(!d||!ifr||!ifr.contentWindow) return;
+  const d=FONTES[k].dados; if(!d||!ifr||!ifr.contentWindow||typeof EMBED[k].binarios!=='function') return;
   try{ ifr.contentWindow.postMessage({tipo:'binarios', arquivos:EMBED[k].binarios(d)}, '*'); }catch(e){ console.error(e); }
 }
 /* Card da Visão Geral do Compras-estoque: o app calcula os totais (mesma leitura das planilhas)
@@ -1637,8 +1655,20 @@ RESUMO.obr = ()=>{
     { l:'Resultado do mês', v:brl0(t.resultado), cls:t.resultado<0?'neg':'pos', s:'negociado − custo' },
     { l:'Em andamento', v:int(t.cont['Em andamento']+t.cont['Andamento Atrasada']), s:int(t.cont['Andamento Atrasada'])+' atrasada(s)', cls:t.cont['Andamento Atrasada']>0?'neg':'' },
     { l:'Aguardando início', v:int(t.cont['Pendente']) },
-  ]};
+  ].concat(obrMargensKpis()) };
 };
+/* 2ª linha: obras que vieram de orçamento — média ponderada pelo valor (Σ margem R$ ÷ Σ valor) */
+function obrMargensKpis(){
+  const R=FONTES.obr.dados.resumo, m=v=>v==null?'—':num1(v)+'%';
+  if(!R) return [{ l:'Margem orçada', v:'…', s:'calculando com as regras do app' },{ l:'Margem executada', v:'…' },{ l:'Resultado geral', v:'…' }];
+  const dif=R.margemExecPct!=null&&R.margemOrcPct!=null?R.margemExecPct-R.margemOrcPct:null;
+  return [
+    { l:'Margem orçada', v:m(R.margemOrcPct), s:'ponderada · '+int(R.qtd)+' obra(s) com orçamento' },
+    { l:'Margem executada', v:m(R.margemExecPct), cls:R.margemExecPct!=null&&R.margemExecPct<0?'neg':(dif!=null&&dif<0?'neg':'pos'),
+      s:dif==null?'ponderada':((dif>=0?'+':'')+num1(dif)+' p.p. vs orçada') },
+    { l:'Resultado geral', v:brl0(R.resultado), cls:R.resultado<0?'neg':'pos', s:'negociado '+brl0(R.negociado)+' − custo '+brl0(R.custo) },
+  ];
+}
 
 
 /* =====================================================================
