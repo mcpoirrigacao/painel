@@ -156,6 +156,7 @@ body.modo-tv main{max-width:none;}
 .user-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--areia-escura);font-size:.84rem;}
 .user-row span{flex:1;}
 .add-row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;}
+a.btn{text-decoration:none;display:inline-flex;align-items:center;}
 .add-row input{flex:1;min-width:200px;border:1px solid var(--borda);border-radius:4px;padding:8px 10px;font-size:.88rem;background:#fffdf9;}
 .sub-tit{font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;color:var(--texto-suave);font-weight:700;margin:14px 0 6px;}
 .chk-grid{display:flex;gap:14px;flex-wrap:wrap;font-size:.84rem;}
@@ -302,6 +303,28 @@ body.modo-tv .embed-wrap iframe{height:calc(100vh - 190px);}
       <div id="lista-comuns"></div>
       <div class="add-row"><input type="text" id="inp-novo-comum" placeholder="email@mcpoirrigacao.com.br"><button class="btn ghost small" id="btn-add-comum" type="button">+ Usuário</button></div>
       <div id="acesso-motivo" class="note" style="margin-top:12px;"></div>
+    </div>
+    <div class="card" id="card-liberar">
+      <h3>Liberar acessos no SharePoint <span class="h3-side">modelo de grupos</span></h3>
+      <p style="font-size:.8rem;color:var(--texto-suave);margin:0 0 10px;">O painel lê os arquivos com a conta de quem está vendo. Por isso cada usuário precisa de <b>Leitura</b> em todas as pastas de origem, e os administradores de <b>edição</b> na pasta Painel. Os botões trazem os e-mails separados por ";" para colar no grupo do SharePoint.</p>
+      <div class="add-row">
+        <button class="btn ghost small" id="btn-exp-acessos" type="button">⬇ Exportar e-mails (Excel/CSV)</button>
+        <button class="btn ghost small" id="btn-cp-edicao" type="button">📋 Copiar quem EDITA (administradores)</button>
+        <button class="btn ghost small" id="btn-cp-leitura" type="button">📋 Copiar quem só LÊ (usuários comuns)</button>
+        <button class="btn ghost small" id="btn-guia-acesso" type="button">📘 Como alterar acessos no SharePoint (grupos)</button>
+      </div>
+      <div class="sub-tit">Números dos grupos no SharePoint</div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;">
+        <div class="field"><label for="p-grp-ed">Grupo "painel 360 - edição" (MembershipGroupId)</label><input type="number" id="p-grp-ed" min="1" step="1" placeholder="ex.: 91"></div>
+        <div class="field"><label for="p-grp-le">Grupo "painel 360 - leitura" (MembershipGroupId)</label><input type="number" id="p-grp-le" min="1" step="1" placeholder="ex.: 97"></div>
+        <button class="btn primary small" id="btn-salvar-grupos" type="button">Salvar números</button>
+      </div>
+      <p style="font-size:.74rem;color:var(--texto-suave);margin:6px 0 0;">Para achar o número: abra <b>Todos os grupos do site</b>, clique no grupo e copie o número que aparece no endereço depois de <code>MembershipGroupId=</code>.</p>
+      <div id="guia-acesso" style="display:none;margin-top:14px;border-top:1px dashed var(--areia-escura);padding-top:12px;">
+        <div class="add-row" id="guia-links"></div>
+        <div id="guia-texto" style="font-size:.8rem;line-height:1.5;margin-top:10px;"></div>
+        <div class="add-row"><button class="btn ghost small" id="btn-copiar-guia" type="button">📋 Copiar orientações</button></div>
+      </div>
     </div>
     <div class="card">
       <h3>Parâmetros do painel <span class="h3-side">painel_parametros.json</span></h3>
@@ -664,7 +687,7 @@ async function alterarPainel(arquivo, alterar){
 }
 
 /* ------------------------------ estado do painel ------------------------------ */
-const PARAMS_PADRAO={ areas:{crm:true,sam:true,fat:true,cmp:true,ast:true,obr:true,orc:true}, autoMin:10, tvSeg:45, crmSenha:'' };
+const PARAMS_PADRAO={ areas:{crm:true,sam:true,fat:true,cmp:true,ast:true,obr:true,orc:true}, autoMin:10, tvSeg:45, crmSenha:'', grupos:{edicao:'',leitura:''} };
 const PAINEL={ acesso:{emailsAutorizados:[],emailsComuns:[]}, params:JSON.parse(JSON.stringify(PARAMS_PADRAO)), nivel:'', motivo:'', pastaOk:false, erroPasta:'' };
 function normAcesso(d){
   d=d||{}; const low=a=>(a||[]).map(x=>String(x).toLowerCase().trim()).filter(Boolean);
@@ -675,7 +698,7 @@ function normParams(d){
   p.areas=Object.assign(p.areas, d.areas||{});
   if(d.autoMin!=null) p.autoMin=Math.max(0,n(d.autoMin));
   if(d.tvSeg!=null) p.tvSeg=Math.max(10,n(d.tvSeg)||45);
-  p.crmSenha=d.crmSenha||''; p.atualizadoPor=d.atualizadoPor||''; p.atualizadoEm=d.atualizadoEm||'';
+  p.crmSenha=d.crmSenha||''; p.grupos={ edicao:String((d.grupos||{}).edicao||'').replace(/\D/g,''), leitura:String((d.grupos||{}).leitura||'').replace(/\D/g,'') }; p.atualizadoPor=d.atualizadoPor||''; p.atualizadoEm=d.atualizadoEm||'';
   return p;
 }
 
@@ -787,6 +810,7 @@ function renderFontes(){
 const NOMES_AREA={crm:'Comercial',sam:'CRM SAM',fat:'Gestão Balcão - Peças',cmp:'Compras-estoque',ast:'Assistência Técnica',obr:'Obras',orc:'Orçamentos Montagem'};
 function renderAdmin(){
   if(PAINEL.nivel!=='admin') return;
+  renderLiberar();
   const lst=(arr,tipo)=>arr.length?arr.map((em,i)=>`<div class="user-row"><span>👤 ${escapeHtml(em)}${em===emailAtual()?' <span class="reg">você</span>':''}</span><button class="btn danger small" data-rem="${tipo}" data-i="${i}" type="button">remover</button></div>`).join('')
     :`<div style="color:var(--texto-suave);font-size:.82rem;padding:4px 0;">${tipo==='admin'?'Nenhum administrador cadastrado ainda — cadastre você mesmo primeiro.':'Nenhum usuário comum.'}</div>`;
   document.getElementById('lista-admins').innerHTML=lst(PAINEL.acesso.emailsAutorizados,'admin');
@@ -837,6 +861,106 @@ document.getElementById('btn-salvar-params').addEventListener('click',()=>{
   salvarParams(p=>{ p.areas=areas; p.autoMin=auto; p.tvSeg=tv; if(senha) p.crmSenha=senha; });
 });
 document.getElementById('btn-limpar-crm').addEventListener('click',()=>{ if(confirm('Apagar a senha do CRM? O Comercial deixa de carregar para todos.')) salvarParams(p=>{ p.crmSenha=''; }); });
+
+
+/* ------------------------------ admin: liberar acessos no SharePoint (modelo de grupos) ------------------------------
+   Dois grupos do site MCPOIRRIGACAO: "painel 360 - edição" (administradores) e "painel 360 - leitura" (usuários comuns).
+   Ninguém recebe permissão individual nas pastas. Os links de permissão das pastas são montados na hora,
+   pelos IDs que o próprio SharePoint informa (só leitura: GET ...?$select=sharepointIds). */
+const SP_SITE_URL='https://'+SP_HOSTNAME+SP_SITE_PATH;
+const GRUPOS_NOME={ edicao:'painel 360 - edição', leitura:'painel 360 - leitura' };
+const PASTAS_ACESSO=[
+  { nome:'Painel',               link:CAMINHOS.painel.link, caminho:CAMINHOS.painel.pasta, edicao:'Colaboração / Pode editar', leitura:'Leitura' },
+  { nome:'Pecas Varejo',         caminho:'Pecas Varejo',            area:'fat' },
+  { nome:'assistencia',          caminho:CAMINHOS.ast.pasta,         area:'ast' },
+  { nome:'Execução de Montagem', caminho:CAMINHOS.obr.pasta,         area:'obr' },
+  { nome:'Orçamentos Montagem',  caminho:'Orçamentos Montagem',      area:'orc' },
+  { nome:'CRM SAM',              link:CAMINHOS.sam.link, caminho:CAMINHOS.sam.pasta, area:'sam' },
+  { nome:'Compras-estoque',      caminho:CAMINHOS.cmp.pasta,         area:'cmp' },
+];
+const _permLinks={};
+async function linkPermissaoPasta(pa){
+  if(_permLinks[pa.nome]!==undefined) return _permLinks[pa.nome];
+  try{
+    const t=await getGraphToken(); const p=await pastaPorLink(pa.link||null, pa.caminho);
+    const r=await lerUrl(`https://graph.microsoft.com/v1.0/drives/${p.driveId}/items/${p.itemId}?$select=id,sharepointIds`,{headers:{Authorization:'Bearer '+t}});
+    if(!r.ok) throw new Error(r.status);
+    const ids=(await r.json()).sharepointIds||{};
+    if(!ids.listId||!ids.listItemId) throw new Error('sem ids');
+    return (_permLinks[pa.nome]=`${ids.siteUrl||SP_SITE_URL}/_layouts/15/User.aspx?obj=%7B${ids.listId.toUpperCase()}%7D,${ids.listItemId},LISTITEM`);
+  }catch(e){ console.warn('permissões da pasta', pa.nome, e); return (_permLinks[pa.nome]=null); }
+}
+function linkGrupo(tipo){ const id=(PAINEL.params.grupos||{})[tipo]; return id?`${SP_SITE_URL}/_layouts/15/people.aspx?MembershipGroupId=${id}`:null; }
+const LINK_TODOS_GRUPOS=SP_SITE_URL+'/_layouts/15/groups.aspx';
+function emailsEdicao(){ return PAINEL.acesso.emailsAutorizados.slice(); }
+function emailsLeitura(){ return PAINEL.acesso.emailsComuns.filter(e=>!PAINEL.acesso.emailsAutorizados.includes(e)); }
+async function copiarTexto(txt, msg){
+  try{ await navigator.clipboard.writeText(txt); toast(msg); }
+  catch(e){ const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); toast(msg); }catch(_){ toast('Não foi possível copiar.'); } ta.remove(); }
+}
+function textoGuia(links){
+  const L=(r,u)=>u?r+': '+u:r+': (descobrir — veja o passo 5)';
+  return [
+    'COMO LIBERAR OU ALTERAR ACESSOS DO PAINEL 360 - MCPO NO SHAREPOINT (modelo de grupos)',
+    '',
+    'Modelo: dois grupos do site MCPOIRRIGACAO controlam o acesso. Ninguém recebe permissão individual nas pastas.',
+    '- '+GRUPOS_NOME.edicao+': administradores do painel. Pasta Painel = Colaboração/Pode editar. Pastas de origem = Leitura.',
+    '- '+GRUPOS_NOME.leitura+': usuários comuns (só visualizam). Pasta Painel = Leitura. Pastas de origem = Leitura.',
+    'Pastas de origem: '+PASTAS_ACESSO.filter(p=>p.nome!=='Painel').map(p=>p.nome).join(', ')+'. (CRM Comercial fica no Google: o acesso é pela senha salva nos parâmetros.)',
+    '',
+    '1. Pessoa nova: cadastre o e-mail no painel (Administradores ou Usuários comuns). No SharePoint, abra o grupo certo › Novo › Adicionar Usuários, cole o e-mail (ou a lista copiada) e clique em Compartilhar, sem enviar convite.',
+    '2. Pessoa saiu: remova o e-mail no painel. No SharePoint, abra o grupo, marque a pessoa e use Ações › Remover Usuários do Grupo.',
+    '3. Mudou de papel (virou admin ou deixou de ser): tire de um grupo e coloque no outro. Ninguém deve ficar nos dois.',
+    '4. Conferir: em cada pasta, ⋯ › Gerenciar acesso › Avançado › Verificar Permissões, digite o e-mail. Na aba Fontes do painel, todas as fontes devem aparecer "✓ lido" para a pessoa.',
+    '5. Montagem inicial (só uma vez): crie os dois grupos em Configurações de permissões avançadas › Criar Grupo (permissão no site: Leitura) e anote os números (MembershipGroupId) nos campos do painel. Na pasta Painel: Parar de Herdar Permissões › Conceder Permissões: edição = Colaboração; leitura = Leitura. Nas pastas de origem: conceda Leitura aos dois grupos (não remova ninguém delas, porque os apps de origem usam os próprios grupos). Só depois de conferir, retire da pasta Painel os grupos Membros/Visitantes, links de compartilhamento e pessoas avulsas. Mantenha sempre Proprietários.',
+    '',
+    'Cuidados: sempre adicione no grupo antes de remover acessos antigos; depois de mudar permissões, peça para a pessoa fechar e abrir o painel (F5). Para desfazer a quebra de herança: na página de permissões da pasta, Excluir permissões exclusivas.',
+    '',
+    'Links (abrem no SharePoint):',
+    L('Grupo "'+GRUPOS_NOME.edicao+'"', linkGrupo('edicao')),
+    L('Grupo "'+GRUPOS_NOME.leitura+'"', linkGrupo('leitura')),
+    'Todos os grupos do site: '+LINK_TODOS_GRUPOS,
+  ].concat(PASTAS_ACESSO.map(p=>L('Permissões da pasta '+p.nome, links[p.nome]))).join('\n');
+}
+let _guiaLinks={};
+async function montarGuia(){
+  const box=document.getElementById('guia-links'); if(!box) return;
+  const btn=(u,txt,cls)=>u?`<a class="btn ${cls||'ghost'} small" href="${escapeHtml(u)}" target="_blank" rel="noopener">${txt}</a>`:`<span class="btn ghost small" style="opacity:.55;cursor:default;" title="número do grupo não cadastrado — use Todos os grupos do site">${txt} (falta o número)</span>`;
+  box.innerHTML=btn(linkGrupo('edicao'),'👥 Editar grupo "'+GRUPOS_NOME.edicao+'"','primary')+btn(linkGrupo('leitura'),'👥 Editar grupo "'+GRUPOS_NOME.leitura+'"','primary')+btn(LINK_TODOS_GRUPOS,'Todos os grupos do site')+'<span id="guia-pastas" style="display:contents;"><span class="btn ghost small" style="opacity:.6;">⏳ buscando pastas…</span></span>';
+  const links={}; await Promise.all(PASTAS_ACESSO.map(async p=>{ links[p.nome]=await linkPermissaoPasta(p); }));
+  _guiaLinks=links;
+  const el=document.getElementById('guia-pastas'); if(el) el.innerHTML=PASTAS_ACESSO.map(p=>links[p.nome]
+    ?`<a class="btn ghost small" href="${escapeHtml(links[p.nome])}" target="_blank" rel="noopener">🔐 Permissões · ${escapeHtml(p.nome)}</a>`
+    :`<span class="btn ghost small" style="opacity:.55;cursor:default;" title="não foi possível ler a pasta com a sua conta">🔐 ${escapeHtml(p.nome)} (sem acesso)</span>`).join('');
+  const linha=(nome,u)=>escapeHtml(nome)+': '+(u?`<a href="${escapeHtml(u)}" target="_blank" rel="noopener">${escapeHtml(u)}</a>`:'<i>descobrir</i>');
+  document.getElementById('guia-texto').innerHTML=
+    `<table class="tab-mini" style="width:100%;border-collapse:collapse;font-size:.78rem;margin-bottom:8px;"><tr><th style="text-align:left;">Grupo</th><th style="text-align:left;">Quem entra</th><th style="text-align:left;">Pasta Painel</th><th style="text-align:left;">Pastas de origem</th></tr>
+      <tr><td><b>${GRUPOS_NOME.edicao}</b></td><td>Administradores do painel (${emailsEdicao().length})</td><td>Colaboração / Pode editar</td><td>Leitura</td></tr>
+      <tr><td><b>${GRUPOS_NOME.leitura}</b></td><td>Usuários comuns (${emailsLeitura().length})</td><td>Leitura / Pode exibir</td><td>Leitura</td></tr></table>`+
+    escapeHtml(textoGuia(links).split('\n\nLinks')[0]).replace(/\n/g,'<br>')+
+    '<br><br><b>Links:</b><br>'+[linha('Grupo edição',linkGrupo('edicao')),linha('Grupo leitura',linkGrupo('leitura'))].concat(PASTAS_ACESSO.map(p=>linha('Permissões da pasta '+p.nome,links[p.nome]))).join('<br>');
+}
+function renderLiberar(){
+  const g=PAINEL.params.grupos||{};
+  const e1=document.getElementById('p-grp-ed'), e2=document.getElementById('p-grp-le');
+  if(e1&&document.activeElement!==e1) e1.value=g.edicao||''; if(e2&&document.activeElement!==e2) e2.value=g.leitura||'';
+  if(document.getElementById('guia-acesso').style.display!=='none') montarGuia();
+}
+document.getElementById('btn-cp-edicao').addEventListener('click',()=>{ const l=emailsEdicao(); if(!l.length) return toast('Nenhum administrador cadastrado.'); copiarTexto(l.join('; '), l.length+' e-mail(s) copiados — cole no grupo "'+GRUPOS_NOME.edicao+'".'); });
+document.getElementById('btn-cp-leitura').addEventListener('click',()=>{ const l=emailsLeitura(); if(!l.length) return toast('Nenhum usuário comum cadastrado.'); copiarTexto(l.join('; '), l.length+' e-mail(s) copiados — cole no grupo "'+GRUPOS_NOME.leitura+'".'); });
+document.getElementById('btn-exp-acessos').addEventListener('click',()=>{
+  const linhas=[['E-mail','Perfil no painel','Grupo SharePoint','Pasta Painel','Pastas de origem']]
+    .concat(emailsEdicao().map(e=>[e,'Administrador',GRUPOS_NOME.edicao,'Colaboração / Pode editar','Leitura']))
+    .concat(emailsLeitura().map(e=>[e,'Usuário comum',GRUPOS_NOME.leitura,'Leitura','Leitura']));
+  const csv='﻿'+linhas.map(l=>l.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(';')).join('\r\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})); a.download='painel360_acessos.csv'; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },500);
+});
+document.getElementById('btn-guia-acesso').addEventListener('click',()=>{ const g=document.getElementById('guia-acesso'); const abrir=g.style.display==='none'; g.style.display=abrir?'':'none'; if(abrir) montarGuia(); });
+document.getElementById('btn-copiar-guia').addEventListener('click',()=>copiarTexto(textoGuia(_guiaLinks),'Orientações copiadas.'));
+document.getElementById('btn-salvar-grupos').addEventListener('click',()=>{
+  const ed=String(document.getElementById('p-grp-ed').value||'').replace(/\D/g,''), le=String(document.getElementById('p-grp-le').value||'').replace(/\D/g,'');
+  salvarParams(p=>{ p.grupos={edicao:ed, leitura:le}; });
+});
 
 /* ------------------------------ acesso ------------------------------ */
 function emailAtual(){ return msAccount?(msAccount.username||'').toLowerCase():''; }
