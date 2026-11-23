@@ -810,6 +810,7 @@ function renderFontes(){
 const NOMES_AREA={crm:'Comercial',sam:'CRM SAM',fat:'Gestão Balcão - Peças',cmp:'Compras-estoque',ast:'Assistência Técnica',obr:'Obras',orc:'Orçamentos Montagem'};
 function renderAdmin(){
   if(PAINEL.nivel!=='admin') return;
+  mcpoBotaoPasta();
   renderLiberar();
   const lst=(arr,tipo)=>arr.length?arr.map((em,i)=>`<div class="user-row"><span>👤 ${escapeHtml(em)}${em===emailAtual()?' <span class="reg">você</span>':''}</span><button class="btn danger small" data-rem="${tipo}" data-i="${i}" type="button">remover</button></div>`).join('')
     :`<div style="color:var(--texto-suave);font-size:.82rem;padding:4px 0;">${tipo==='admin'?'Nenhum administrador cadastrado ainda — cadastre você mesmo primeiro.':'Nenhum usuário comum.'}</div>`;
@@ -826,7 +827,7 @@ function renderAdmin(){
 async function salvarAcesso(alterar, msgOk){
   try{
     const novo=await alterarPainel(CAMINHOS.painel.acesso, d=>{ const a=normAcesso(d); alterar(a); return {emailsAutorizados:a.emailsAutorizados, emailsComuns:a.emailsComuns.filter(e=>!a.emailsAutorizados.includes(e))}; });
-    PAINEL.acesso=normAcesso(novo); definirNivel(); applyAccess(); renderAdmin(); toast(msgOk);
+    PAINEL.acesso=normAcesso(novo); definirNivel(); applyAccess(); renderAdmin(); toast(msgOk); mcpoSincronizar();
   }catch(e){ toast('Não foi possível salvar: '+e.message); }
 }
 function addUsuario(tipo){
@@ -985,12 +986,141 @@ async function adminEmAlgumApp(){
 }
 /* admin / comum pela lista do painel. Enquanto não houver nenhum admin no painel,
    quem é admin em algum app entra como admin para fazer o primeiro cadastro. */
+/* ===== MCPO · configuração de acesso deste app ===== */
+var MCPO_CFG = {
+  roles: [
+    ['admin',['MCPO.Admin','Painel.Admin']],
+    ['comum',['Painel.Comum']]
+  ],
+  token: async()=>{ try{ return await getGraphToken(); }catch(e){ return null; } },
+  toast: m=>toast(m),
+  pastas: async()=>(await Promise.all(PASTAS_ACESSO.map(async pa=>{ try{ const p=await pastaPorLink(pa.link||null,pa.caminho); return {chave:pa.nome,propria:pa.nome==='Painel',url:`${MCPO_GRAPH}/drives/${p.driveId}/items/${p.itemId}`}; }catch(e){ return null; } }))),
+  desejado: ()=>{ const out=[], A=PAINEL.acesso.emailsAutorizados, C=PAINEL.acesso.emailsComuns.filter(e=>!A.includes(e)); [...A.map(e=>[e,'write']),...C.map(e=>[e,'read'])].forEach(([e,pp])=>PASTAS_ACESSO.forEach(pa=>out.push([e,pa.nome,pa.nome==='Painel'?pp:'read']))); return out; },
+  ancora: 'lista-comuns',
+  podeGerir: ()=>PAINEL.nivel==='admin'
+};
+/* ===================== MCPO · ACESSO PADRONIZADO (v1) =====================
+   Igual em todos os apps MCPO. Só o bloco MCPO_CFG (logo acima) muda de app para app.
+   1) Funções do app no Azure (registro "MCPO API Github") têm prioridade sobre as listas de e-mail.
+   2) Quem está nas listas recebe permissão direta na pasta do app no SharePoint (editar ou ler);
+      quem sai das listas perde essa permissão. O app anota o que liberou em _mcpo_permissoes.json
+      e só retira o que ele mesmo liberou. Em pastas de outros apps (leitura), nunca retira.
+   Usa o login do admin com Sites.ReadWrite.All (sem permissão nova no Azure). */
+function rolesAtuais(){
+  const r = (typeof msAccount!=='undefined' && msAccount && msAccount.idTokenClaims && msAccount.idTokenClaims.roles) || [];
+  return Array.isArray(r) ? r : [];
+}
+function nivelPorFuncao(){
+  const r = rolesAtuais();
+  for(const [nivel, lista] of MCPO_CFG.roles){ if(r.some(x=>lista.includes(x))) return nivel; }
+  return null;
+}
+const MCPO_GRAPH='https://graph.microsoft.com/v1.0', MCPO_REG='_mcpo_permissoes.json';
+let _mcpoSite=null, _mcpoFila=Promise.resolve();
+function _mcpoEnc(p){ return p.split('/').map(encodeURIComponent).join('/'); }
+async function mcpoUrlCaminho(caminho){   // caminho como os apps usam: '/Documentos Compartilhados/<pasta>'
+  const tk=await MCPO_CFG.token(); if(!tk) return null;
+  if(!_mcpoSite){
+    const r=await fetch(`${MCPO_GRAPH}/sites/maqcampoirrigacao.sharepoint.com:/sites/MCPOIRRIGACAO`,{headers:{Authorization:'Bearer '+tk}});
+    if(!r.ok) return null; _mcpoSite=(await r.json()).id;
+  }
+  return `${MCPO_GRAPH}/sites/${_mcpoSite}/drive/root:${_mcpoEnc(caminho)}`;
+}
+function _mcpoAcao(url,acao){ return url.includes('/root:') ? url+':/'+acao : url+'/'+acao; }
+function _mcpoFilho(url,nome){ return url.includes('/root:') ? url+'/'+encodeURIComponent(nome) : url+':/'+encodeURIComponent(nome); }
+async function _mcpoErro(r){ let m=''; try{ m=(await r.json()).error.message; }catch(e){} return r.status===403?'sem permissão para compartilhar a pasta':(m||('erro '+r.status)); }
+async function mcpoConceder(tk,url,email,papel){
+  try{
+    const r=await fetch(_mcpoAcao(url,'invite'),{method:'POST',headers:{Authorization:'Bearer '+tk,'Content-Type':'application/json'},
+      body:JSON.stringify({recipients:[{email}],requireSignIn:true,sendInvitation:false,roles:[papel==='read'?'read':'write']})});
+    return r.ok?{ok:true}:{ok:false,msg:await _mcpoErro(r)};
+  }catch(e){ return {ok:false,msg:'falha de rede'}; }
+}
+function _mcpoTemEmail(p,em){
+  const ids=[p.grantedToV2,p.grantedTo,...(p.grantedToIdentitiesV2||[]),...(p.grantedToIdentities||[])].filter(Boolean);
+  return ids.some(g=>{ const u=g.user||g.siteUser||{}; return [u.email,u.loginName,u.userPrincipalName].some(v=>v&&String(v).toLowerCase().includes(em)); });
+}
+async function mcpoRetirar(tk,url,email){
+  const em=String(email).toLowerCase();
+  try{
+    const r=await fetch(_mcpoAcao(url,'permissions'),{headers:{Authorization:'Bearer '+tk}});
+    if(!r.ok) return {ok:false,msg:await _mcpoErro(r)};
+    const perms=((await r.json()).value||[]).filter(p=>!p.inheritedFrom&&!(p.roles||[]).includes('owner')&&_mcpoTemEmail(p,em));
+    for(const p of perms){
+      const ids=[...(p.grantedToIdentitiesV2||[]),...(p.grantedToIdentities||[])];
+      const d=(p.link&&ids.length>1)
+        ? await fetch(_mcpoAcao(url,'permissions/'+p.id+'/revokeGrants'),{method:'POST',headers:{Authorization:'Bearer '+tk,'Content-Type':'application/json'},body:JSON.stringify({grantees:[{email}]})})
+        : await fetch(_mcpoAcao(url,'permissions/'+p.id),{method:'DELETE',headers:{Authorization:'Bearer '+tk}});
+      if(!d.ok) return {ok:false,msg:await _mcpoErro(d)};
+    }
+    return {ok:true};
+  }catch(e){ return {ok:false,msg:'falha de rede'}; }
+}
+/* Sincroniza as pastas com as listas do app. forcar=true libera de novo todo mundo (botão). */
+function mcpoSincronizar(forcar){
+  _mcpoFila=_mcpoFila.then(()=>_mcpoSincronizar(!!forcar)).catch(e=>console.warn('MCPO acesso:',e));
+  return _mcpoFila;
+}
+async function _mcpoSincronizar(forcar){
+  if(MCPO_CFG.podeGerir && !MCPO_CFG.podeGerir()) return;
+  const tk=await MCPO_CFG.token(); if(!tk) return;
+  const pastas=(await MCPO_CFG.pastas()).filter(p=>p&&p.url); if(!pastas.length) return;
+  const propria=pastas.find(p=>p.propria)||pastas[0];
+  const regUrl=_mcpoFilho(propria.url,MCPO_REG);
+  let reg={pastas:{}};
+  try{ const r=await fetch(_mcpoAcao(regUrl,'content'),{headers:{Authorization:'Bearer '+tk},cache:'no-store'}); if(r.ok){ const j=await r.json(); if(j&&j.pastas) reg=j; } }catch(e){}
+  // desejado: { chave: { email: 'write'|'read' } }  — 'write' vale mais que 'read'
+  const quer={};
+  for(const [email,chave,papel] of MCPO_CFG.desejado()){
+    const em=String(email||'').trim().toLowerCase(); if(!em||!em.includes('@')) continue;
+    const q=(quer[chave]=quer[chave]||{}); if(q[em]!=='write') q[em]=papel==='read'?'read':'write';
+  }
+  let lib=0, ret=0; const falhas=[]; let mudou=false;
+  for(const p of pastas){
+    const q=quer[p.chave]||{}, tem=(reg.pastas[p.chave]=reg.pastas[p.chave]||{});
+    for(const [em,papel] of Object.entries(q)){
+      if(!forcar && tem[em]===papel) continue;
+      if(p.propria && tem[em] && tem[em]!==papel) await mcpoRetirar(tk,p.url,em);   // mudou de nível
+      const r=await mcpoConceder(tk,p.url,em,papel);
+      if(r.ok){ if(tem[em]!==papel) lib++; tem[em]=papel; mudou=true; } else falhas.push(em+' ('+r.msg+')');
+    }
+    for(const em of Object.keys(tem)){
+      if(q[em]) continue;
+      if(p.propria){ const r=await mcpoRetirar(tk,p.url,em); if(!r.ok){ falhas.push(em+' ('+r.msg+')'); continue; } ret++; }
+      delete tem[em]; mudou=true;   // pasta de outro app: só esquece, não retira
+    }
+  }
+  if(mudou){
+    reg.atualizadoEm=new Date().toISOString(); reg.atualizadoPor=(typeof msAccount!=='undefined'&&msAccount&&msAccount.username)||'';
+    try{ await fetch(_mcpoAcao(regUrl,'content'),{method:'PUT',headers:{Authorization:'Bearer '+tk,'Content-Type':'application/json'},body:JSON.stringify(reg,null,1)}); }catch(e){}
+  }
+  if(falhas.length) MCPO_CFG.toast('SharePoint: '+(lib||ret?`${lib} liberado(s), ${ret} retirado(s); `:'')+'não foi possível para '+falhas.join(', '));
+  else if(lib||ret) MCPO_CFG.toast(`Pasta do SharePoint atualizada: ${lib} liberado(s), ${ret} retirado(s).`);
+  else if(forcar) MCPO_CFG.toast('Pasta do SharePoint conferida: todos da lista têm acesso.');
+}
+/* Botão + aviso no card de usuários (criado uma vez, ao lado da lista indicada em MCPO_CFG.ancora). */
+function mcpoBotaoPasta(){
+  if(document.getElementById('mcpo-sync-pasta')) return;
+  const a=document.getElementById(MCPO_CFG.ancora); if(!a) return;
+  const card=a.closest('.card,fieldset,.drawer,section')||a.parentNode;
+  const box=document.createElement('div'); box.className='note'; box.style.marginTop='10px';
+  box.innerHTML='Ao adicionar ou remover um e-mail, o app libera ou retira a permissão na pasta do SharePoint automaticamente. '
+    +'Funções do Azure (MCPO API Github) também dão acesso ao app. '
+    +'<button class="btn ghost small" id="mcpo-sync-pasta" type="button" style="margin-left:6px;">Sincronizar pasta com a lista</button>';
+  card.appendChild(box);
+  document.getElementById('mcpo-sync-pasta').addEventListener('click',async e=>{
+    const b=e.currentTarget; b.disabled=true; const t=b.textContent; b.textContent='Sincronizando…';
+    try{ await mcpoSincronizar(true); } finally{ b.disabled=false; b.textContent=t; }
+  });
+}
+/* =================== fim MCPO · ACESSO PADRONIZADO =================== */
+
 let _bootstrapAdmin=false;
 function definirNivel(){
   const e=emailAtual(), A=PAINEL.acesso.emailsAutorizados, C=PAINEL.acesso.emailsComuns;
+  const _f=nivelPorFuncao(); if(_f){ PAINEL.nivel=_f; PAINEL.motivo='Função do Azure: '+rolesAtuais().join(', '); return; }
   if(A.includes(e)){ PAINEL.nivel='admin'; PAINEL.motivo='Administrador do painel.'; }
   else if(C.includes(e)){ PAINEL.nivel='comum'; PAINEL.motivo='Usuário comum do painel.'; }
-  else if(!A.length && _bootstrapAdmin){ PAINEL.nivel='admin'; PAINEL.motivo='Painel ainda sem administradores: liberado porque você é administrador em um dos apps. Cadastre-se como administrador abaixo.'; }
   else { PAINEL.nivel='bloqueado'; PAINEL.motivo='E-mail não cadastrado no painel.'; }
 }
 function applyAccess(){
