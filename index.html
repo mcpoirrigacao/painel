@@ -110,6 +110,7 @@ p.pane-desc{color:var(--texto-suave);font-size:.84rem;margin:0;}
 .ac-kpi .s{font-size:.66rem;color:var(--texto-suave);}
 .ac-msg{font-size:.82rem;color:var(--texto-suave);padding:8px 0;}
 .ac-msg.erro{color:var(--erro);}
+.ac-rodape{margin-top:10px;padding-top:7px;border-top:1px solid var(--areia-escura);font-size:.74rem;color:var(--texto-suave);}
 
 table.dt{width:100%;border-collapse:collapse;font-size:.8rem;}
 table.dt th{text-align:left;background:var(--azul-escuro);color:#fff;padding:8px;font-size:.64rem;text-transform:uppercase;letter-spacing:.4px;position:sticky;top:0;white-space:nowrap;}
@@ -764,7 +765,7 @@ function renderGeral(){
     let corpo;
     if(f.dados){
       let r; try{ r=RESUMO[k](); }catch(e){ console.error(e); r={kpis:[], msg:'Erro ao calcular: '+e.message}; }
-      corpo=(r.msg?`<div class="ac-msg">${escapeHtml(r.msg)}</div>`:'')+`<div class="ac-kpis c3">${r.kpis.map(x=>`<div class="ac-kpi"><div class="l">${x.l}</div><div class="v ${x.cls||''}">${x.v}</div>${x.bar!=null?`<div class="bar"><span style="width:${Math.max(0,Math.min(100,(x.bar||0)*100))}%"></span></div>`:'<div class="bar-vazia"></div>'}<div class="s">${x.s||''}</div></div>`).join('')}</div>`;
+      corpo=(r.msg?`<div class="ac-msg">${escapeHtml(r.msg)}</div>`:'')+`<div class="ac-kpis c3">${r.kpis.map(x=>`<div class="ac-kpi"><div class="l">${x.l}</div><div class="v ${x.cls||''}">${x.v}</div>${x.bar!=null?`<div class="bar"><span style="width:${Math.max(0,Math.min(100,(x.bar||0)*100))}%"></span></div>`:'<div class="bar-vazia"></div>'}<div class="s">${x.s||''}</div></div>`).join('')}</div>`+(r.rodape?`<div class="ac-rodape">${escapeHtml(r.rodape)}</div>`:'');
     } else if(f.estado==='erro') corpo=`<div class="ac-msg erro">⚠ ${escapeHtml(f.msg)}</div>`;
     else if(f.estado==='semsenha') corpo=`<div class="ac-msg">🔑 Falta a senha da planilha.</div>`;
     else corpo=`<div class="ac-msg">⏳ Lendo…</div>`;
@@ -1056,6 +1057,20 @@ window.__painelResumoObr=function(){ try{
   r.margemOrcPct=r.valorProposta>0?r.margemOrcValor/r.valorProposta*100:null;
   r.margemExecPct=r.negociado>0?r.margemExecValor/r.negociado*100:null;
   r.resultado=r.negociado-r.custo;
+  /* por mês (AAAA-MM): vendido (data da negociação), concluídas (data de conclusão) e caixa (data do lançamento) */
+  var M={}, mes=function(d){ return (typeof d==='string'&&/^\\d{4}-\\d{2}/.test(d))?d.slice(0,7):null; };
+  var reg=function(k){ return M[k]||(M[k]={vendQtd:0,vend:0,vendOrcV:0,vendOrcM:0,concQtd:0,concNeg:0,concRes:0,rec:0,custo:0}); };
+  obras.forEach(function(o){
+    var kn=mes(o.dataNegociacao);
+    if(kn){ var a=reg(kn); a.vendQtd++; a.vend+=n(o.valorNegociado);
+      if(o.margemOrcada){ a.vendOrcV+=n(o.margemOrcada.valorProposta); a.vendOrcM+=n(o.margemOrcada.margemValor); } }
+    var kc=o.concluida?mes(o.dataConclusao):null;
+    if(kc){ var e=margemExecutadaObra(o,lancamentos.filter(function(l){ return l.obraId===o.id; })), b=reg(kc);
+      b.concQtd++; b.concNeg+=e.negociado; b.concRes+=e.margemValor; }
+  });
+  var porMes={}; lancamentos.forEach(function(l){ var k=mes(l.data); if(k)(porMes[k]=porMes[k]||[]).push(l); });
+  Object.keys(porMes).forEach(function(k){ var c=reg(k); c.rec=somaPorTipo('ENTRADA',porMes[k]); c.custo=somaPorTipo('SAIDA',porMes[k]); });
+  r.meses=M;
   window.parent.postMessage({tipo:'resumo', resumo:r},'*');
 }catch(e){ console.error('[painel] resumo obras', e); } };
 window.addEventListener('load',function(){ setTimeout(window.__painelResumoObr,300); });
@@ -1650,12 +1665,22 @@ function obrTotais(M){
 }
 
 RESUMO.obr = ()=>{
-  const M=moduloObr(FONTES.obr.dados), t=obrTotais(M);
-  return { kpis:[
-    { l:'Resultado do mês', v:brl0(t.resultado), cls:t.resultado<0?'neg':'pos', s:'negociado − custo' },
-    { l:'Em andamento', v:int(t.cont['Em andamento']+t.cont['Andamento Atrasada']), s:int(t.cont['Andamento Atrasada'])+' atrasada(s)', cls:t.cont['Andamento Atrasada']>0?'neg':'' },
-    { l:'Aguardando início', v:int(t.cont['Pendente']) },
-  ].concat(obrMargensKpis()) };
+  const M=moduloObr(FONTES.obr.dados), t=obrTotais(M), R=FONTES.obr.dados.resumo;
+  const and=t.cont['Em andamento']+t.cont['Andamento Atrasada'];
+  const rodape=int(and)+' em andamento ('+int(t.cont['Andamento Atrasada'])+' atrasada'+(t.cont['Andamento Atrasada']===1?'':'s')+') · '+int(t.cont['Pausada'])+' pausada(s) · '+int(t.cont['Pendente'])+' aguardando início';
+  let l1;
+  if(!R||!R.meses) l1=[{ l:'Vendido no mês', v:'…', s:'calculando com as regras do app' },{ l:'Concluídas no mês', v:'…' },{ l:'Caixa do mês', v:'…' }];
+  else {
+    const z={vendQtd:0,vend:0,vendOrcV:0,vendOrcM:0,concQtd:0,concNeg:0,concRes:0,rec:0,custo:0}, a=Object.assign({},z,R.meses[FILTRO.ym]||{});
+    const mOrc=a.vendOrcV>0?a.vendOrcM/a.vendOrcV*100:null, mExe=a.concNeg>0?a.concRes/a.concNeg*100:null, cx=a.rec-a.custo;
+    l1=[
+      { l:'Vendido no mês', v:brl0(a.vend), s:int(a.vendQtd)+' obra(s)'+(mOrc!=null?' · margem orçada '+num1(mOrc)+'%':'') },
+      { l:'Concluídas no mês', v:a.concQtd?brl0(a.concRes):'—', cls:a.concQtd?(a.concRes<0?'neg':'pos'):'',
+        s:a.concQtd?int(a.concQtd)+' obra(s) · margem executada '+(mExe!=null?num1(mExe)+'%':'—'):'nenhuma obra concluída' },
+      { l:'Caixa do mês', v:brl0(cx), cls:cx<0?'neg':'pos', s:'recebido '+brl0(a.rec)+' − custo '+brl0(a.custo) },
+    ];
+  }
+  return { kpis:l1.concat(obrMargensKpis()), rodape };
 };
 /* 2ª linha: obras que vieram de orçamento — média ponderada pelo valor (Σ margem R$ ÷ Σ valor) */
 function obrMargensKpis(){
